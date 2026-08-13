@@ -1,4 +1,5 @@
 # Lopsang Rinchen Art Page
+![Nakpo Art UI Preview](frontend/public/NAKPO-ui.png)
 
 A personal art portfolio site built with **React + Tailwind CSS** (frontend) and **Node.js + MongoDB** (backend).
 
