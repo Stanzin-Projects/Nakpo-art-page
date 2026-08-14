@@ -1,12 +1,24 @@
 import { X, Plus, Minus, ShoppingBag, Trash2 } from 'lucide-react';
 import { ImageWithFallback } from './ImageWithFallback';
+import { useCart } from '../context/CartContext';
+import { useRequireLogin } from '../utils/authFlow';
 
 function imageUrl(item) {
   return item.image || item.imageUrl;
 }
 
-export function ShoppingCart({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onCheckout }) {
+export function ShoppingCart({ isOpen, onClose }) {
+  const { cartItems, updateQuantity, removeFromCart, openCheckout } = useCart();
+  const requireLogin = useRequireLogin();
   if (!isOpen) return null;
+
+  const handleCheckout = () => {
+    if (!requireLogin({ message: 'Please sign in to complete your purchase' })) {
+      onClose();
+      return;
+    }
+    openCheckout();
+  };
 
   const total = cartItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
   const itemCount = cartItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
@@ -55,7 +67,7 @@ export function ShoppingCart({ isOpen, onClose, cartItems, onUpdateQuantity, onR
                         </div>
                         <button
                           type="button"
-                          onClick={() => onRemoveItem(item.id || item._id)}
+                          onClick={() => removeFromCart(item.id)}
                           className="text-muted-foreground hover:text-destructive p-1"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -65,7 +77,7 @@ export function ShoppingCart({ isOpen, onClose, cartItems, onUpdateQuantity, onR
                         <div className="flex items-center border border-border rounded-lg">
                           <button
                             type="button"
-                            onClick={() => onUpdateQuantity(item.id || item._id, Math.max(0, (item.quantity || 1) - 1))}
+                            onClick={() => updateQuantity(item.id, Math.max(0, (item.quantity || 1) - 1))}
                             className="p-2 hover:bg-muted disabled:opacity-50"
                             disabled={(item.quantity || 1) <= 1}
                           >
@@ -74,7 +86,7 @@ export function ShoppingCart({ isOpen, onClose, cartItems, onUpdateQuantity, onR
                           <span className="px-3 py-2 min-w-[3rem] text-center text-sm">{item.quantity || 1}</span>
                           <button
                             type="button"
-                            onClick={() => onUpdateQuantity(item.id || item._id, (item.quantity || 1) + 1)}
+                            onClick={() => updateQuantity(item.id, (item.quantity || 1) + 1)}
                             className="p-2 hover:bg-muted"
                           >
                             <Plus className="h-3 w-3" />
@@ -113,7 +125,7 @@ export function ShoppingCart({ isOpen, onClose, cartItems, onUpdateQuantity, onR
             </div>
             <button
               type="button"
-              onClick={onCheckout}
+              onClick={handleCheckout}
               className="w-full h-11 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90"
             >
               Proceed to Checkout

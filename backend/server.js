@@ -10,6 +10,11 @@ import { connectDB } from './config/database.js';
 import artworkRoutes from './routes/artwork.routes.js';
 import contactRoutes from './routes/contact.routes.js';
 import orderRoutes from './routes/order.routes.js';
+import authRoutes from './routes/auth.routes.js';
+import userRoutes from './routes/user.routes.js';
+import reviewRoutes from './routes/review.routes.js';
+import couponRoutes from './routes/coupon.routes.js';
+import notificationRoutes from './routes/notification.routes.js';
 
 dotenv.config();
 
@@ -33,6 +38,11 @@ app.use('/uploads', express.static(uploadsDir));
 app.use('/api/artworks', artworkRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api', reviewRoutes);
+app.use('/api/coupons', couponRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });

@@ -1,13 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Package, Truck, CheckCircle, Clock, MapPin, Search } from 'lucide-react';
 import { getOrders } from '../api/order.api';
 
-export function OrderTracking({ isOpen, onClose }) {
+export function OrderTracking({ isOpen, onClose, initialOrder }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // preselect an order when one is passed in (e.g. from order history)
+  useEffect(() => {
+    if (initialOrder) {
+      setSelectedOrder(initialOrder);
+      setSearchResults([]);
+      setError('');
+    }
+  }, [initialOrder, isOpen]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
