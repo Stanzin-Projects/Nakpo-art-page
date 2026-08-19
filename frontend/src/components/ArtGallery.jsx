@@ -2,10 +2,10 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Grid, List, Heart, ShoppingCart, Percent, ArrowRight, X, Star } from 'lucide-react';
 import { ImageWithFallback } from './ImageWithFallback';
+import { GalleryMarquee } from './GalleryMarquee';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
-import { useRequireLogin } from '../utils/authFlow';
 
 const SORT_OPTIONS = [
   { value: 'featured', label: 'Featured' },
@@ -15,12 +15,12 @@ const SORT_OPTIONS = [
   { value: 'rating', label: 'Rating' },
 ];
 
-export function ArtGallery({ artworks = [] }) {
+export function ArtGallery({ artworks = [], siteContent }) {
+  const galleryContent = siteContent?.gallery || {};
   const navigate = useNavigate();
-  const { isFavorite, toggleFavorite } = useAuth();
+  const { user, isFavorite, toggleFavorite } = useAuth();
   const { addToCart } = useCart();
   const { push } = useToast();
-  const requireLogin = useRequireLogin();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -108,18 +108,21 @@ export function ArtGallery({ artworks = [] }) {
 
   const handleAddToCart = (e, art) => {
     e.stopPropagation();
-    if (!requireLogin({ artworkId: art.id || art._id, message: 'Sign in to add artworks to your cart' })) return;
     addToCart(art);
     push('Added to cart');
   };
 
   return (
-    <section id="gallery" className="py-16 lg:py-20 scroll-mt-16">
+    <section id="gallery" className="pt-2 pb-16 lg:pb-20 scroll-mt-16">
+      <GalleryMarquee artworks={artworks} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-medium mb-4 text-foreground">Art Gallery</h2>
+          <h2 className="text-3xl md:text-4xl font-medium mb-4 text-foreground">
+            {galleryContent.title || 'Art Gallery'}
+          </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Explore our collection of original artworks and limited edition prints. Each piece is carefully crafted to bring beauty and meaning to your space.
+            {galleryContent.description ||
+              'Explore our collection of original artworks and limited edition prints. Each piece is carefully crafted to bring beauty and meaning to your space.'}
           </p>
         </div>
 
@@ -156,7 +159,7 @@ export function ArtGallery({ artworks = [] }) {
                       <img src={imageUrl(art)} alt="" className="w-9 h-9 rounded object-cover" />
                       <span className="flex-1 min-w-0">
                         <span className="block text-sm font-medium truncate">{art.title}</span>
-                        <span className="block text-xs text-muted-foreground">${art.price ?? 0}</span>
+                        <span className="block text-xs text-muted-foreground">₹{art.price ?? 0}</span>
                       </span>
                       <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     </button>
@@ -219,7 +222,7 @@ export function ArtGallery({ artworks = [] }) {
               <div className="flex items-center gap-1.5">
                 <input
                   type="number"
-                  placeholder="Min $"
+                  placeholder="Min ₹"
                   value={minPrice}
                   onChange={(e) => setMinPrice(e.target.value)}
                   className="w-20 h-9 px-2 rounded-md border border-border bg-background text-sm"
@@ -228,7 +231,7 @@ export function ArtGallery({ artworks = [] }) {
                 <span className="text-muted-foreground">–</span>
                 <input
                   type="number"
-                  placeholder="Max $"
+                  placeholder="Max ₹"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
                   className="w-20 h-9 px-2 rounded-md border border-border bg-background text-sm"
@@ -296,28 +299,31 @@ export function ArtGallery({ artworks = [] }) {
                       viewMode === 'grid' ? 'aspect-[3/4]' : 'aspect-[16/9]'
                     }`}
                   />
-                  <div className="absolute top-2 right-2 sm:top-4 sm:right-4 flex gap-2">
-                    <button
-                      type="button"
-                      onClick={(e) => handleToggleFavorite(e, artwork)}
-                      className="p-2 bg-white/90 rounded-full shadow-sm hover:bg-white"
-                      title={fav ? 'Remove from wishlist' : 'Add to wishlist'}
-                    >
-                      <Heart
-                        className={`h-4 w-4 ${
-                          fav ? 'fill-red-500 text-red-500' : 'text-gray-600'
-                        }`}
-                      />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => handleAddToCart(e, artwork)}
-                      className="p-2 bg-white/90 rounded-full shadow-sm hover:bg-white"
-                      title="Add to cart"
-                    >
-                      <ShoppingCart className="h-4 w-4 text-gray-600" />
-                    </button>
-                  </div>
+                  {/* Wishlist/cart are shopping actions — hidden for the admin */}
+                  {!user?.isAdmin && (
+                    <div className="absolute top-2 right-2 sm:top-4 sm:right-4 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleFavorite(e, artwork)}
+                        className="p-2 bg-white/90 rounded-full shadow-sm hover:bg-white"
+                        title={fav ? 'Remove from wishlist' : 'Add to wishlist'}
+                      >
+                        <Heart
+                          className={`h-4 w-4 ${
+                            fav ? 'fill-red-500 text-red-500' : 'text-gray-600'
+                          }`}
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => handleAddToCart(e, artwork)}
+                        className="p-2 bg-white/90 rounded-full shadow-sm hover:bg-white"
+                        title="Add to cart"
+                      >
+                        <ShoppingCart className="h-4 w-4 text-gray-600" />
+                      </button>
+                    </div>
+                  )}
                   <div className="absolute top-2 left-2 sm:top-4 sm:left-4 flex gap-2">
                     {artwork.isOriginal && (
                       <span className="inline-flex items-center rounded-md bg-secondary text-secondary-foreground px-2 py-0.5 text-xs">
@@ -346,9 +352,9 @@ export function ArtGallery({ artworks = [] }) {
                       <p className="text-muted-foreground text-sm">{artwork.medium}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-foreground">${artwork.price ?? 0}</p>
+                      <p className="font-medium text-foreground">₹{artwork.price ?? 0}</p>
                       {artwork.originalPrice && (
-                        <p className="text-muted-foreground text-sm line-through">${artwork.originalPrice}</p>
+                        <p className="text-muted-foreground text-sm line-through">₹{artwork.originalPrice}</p>
                       )}
                       <p className="text-muted-foreground text-sm">{artwork.dimensions}</p>
                     </div>

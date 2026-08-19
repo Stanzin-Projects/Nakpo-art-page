@@ -10,6 +10,11 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // File uploads (FormData) need the browser to set the multipart boundary —
+  // the JSON default header would make the backend reject the request.
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
   return config;
 });
 

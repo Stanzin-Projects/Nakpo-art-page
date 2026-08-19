@@ -37,3 +37,72 @@
     overflow-x: hidden;
   }
 }
+
+/* Gallery marquee — all artworks scroll left → right in a seamless loop */
+@keyframes gallery-marquee {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.gallery-marquee-track {
+  animation: gallery-marquee 150s linear infinite;
+  will-change: transform;
+}
+
+.gallery-marquee:hover .gallery-marquee-track,
+.gallery-marquee:focus-within .gallery-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-marquee-track {
+    animation: none;
+  }
+}
+
+/* Artwork images carry a white paper background baked into the file —
+   multiply blends that white into the page so only the drawing shows. */
+.gallery-marquee img {
+  mix-blend-mode: multiply;
+}
+
+/* Image marquee — slow smooth left → right scroll below hero */
+@keyframes image-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.image-marquee-track {
+  animation: image-marquee 75s linear infinite;
+  will-change: transform;
+}
+
+.image-marquee:hover .image-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image-marquee-track {
+    animation: none;
+  }
+}
+
+/* ---- Image protection: stop drag, long-press save and selection of images ---- */
+img {
+  -webkit-user-drag: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+img::selection {
+  background: transparent;
+}

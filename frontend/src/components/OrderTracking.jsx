@@ -116,7 +116,7 @@ export function OrderTracking({ isOpen, onClose, initialOrder }) {
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {o.createdAt ? new Date(o.createdAt).toLocaleDateString() : ''} · ${o.total}
+                      {o.createdAt ? new Date(o.createdAt).toLocaleDateString() : ''} · ₹{o.total}
                     </p>
                   </button>
                 ))}
@@ -194,14 +194,14 @@ export function OrderTracking({ isOpen, onClose, initialOrder }) {
                     <div className="flex-1">
                       <h4 className="font-medium text-sm">{item.title}</h4>
                       <p className="text-muted-foreground text-sm">Qty: {item.quantity}</p>
-                      <p className="font-medium text-sm">${(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="font-medium text-sm">₹{(item.price * item.quantity).toFixed(2)}</p>
                     </div>
                   </div>
                 ))}
               </div>
               <div className="flex justify-between font-medium text-lg mt-4 pt-4 border-t border-border">
                 <span>Total</span>
-                <span>${order.total}</span>
+                <span>₹{order.total}</span>
               </div>
             </div>
           </div>

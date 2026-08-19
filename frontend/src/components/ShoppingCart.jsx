@@ -1,7 +1,6 @@
 import { X, Plus, Minus, ShoppingBag, Trash2 } from 'lucide-react';
 import { ImageWithFallback } from './ImageWithFallback';
 import { useCart } from '../context/CartContext';
-import { useRequireLogin } from '../utils/authFlow';
 
 function imageUrl(item) {
   return item.image || item.imageUrl;
@@ -9,14 +8,9 @@ function imageUrl(item) {
 
 export function ShoppingCart({ isOpen, onClose }) {
   const { cartItems, updateQuantity, removeFromCart, openCheckout } = useCart();
-  const requireLogin = useRequireLogin();
   if (!isOpen) return null;
 
   const handleCheckout = () => {
-    if (!requireLogin({ message: 'Please sign in to complete your purchase' })) {
-      onClose();
-      return;
-    }
     openCheckout();
   };
 
@@ -93,9 +87,9 @@ export function ShoppingCart({ isOpen, onClose }) {
                           </button>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium text-foreground">${((item.price || 0) * (item.quantity || 1)).toFixed(0)}</p>
+                          <p className="font-medium text-foreground">₹{((item.price || 0) * (item.quantity || 1)).toFixed(0)}</p>
                           {item.quantity > 1 && (
-                            <p className="text-sm text-muted-foreground">${item.price} each</p>
+                            <p className="text-sm text-muted-foreground">₹{item.price} each</p>
                           )}
                         </div>
                       </div>
@@ -112,7 +106,7 @@ export function ShoppingCart({ isOpen, onClose }) {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span className="text-foreground">${total}</span>
+                <span className="text-foreground">₹{total}</span>
               </div>
               <div className="flex justify-between text-muted-foreground">
                 <span>Shipping</span>
@@ -120,7 +114,7 @@ export function ShoppingCart({ isOpen, onClose }) {
               </div>
               <div className="flex justify-between font-medium text-lg pt-2 border-t border-border">
                 <span className="text-foreground">Total</span>
-                <span className="text-foreground">${total}</span>
+                <span className="text-foreground">₹{total}</span>
               </div>
             </div>
             <button

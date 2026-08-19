@@ -8,6 +8,10 @@ import dotenv from 'dotenv';
 import { connectDB } from './config/database.js';
 import Artwork from './models/Artwork.model.js';
 import Coupon from './models/Coupon.model.js';
+import User from './models/User.model.js';
+import SiteContent from './models/SiteContent.model.js';
+import { hashPassword } from './utils/auth.js';
+import { DEFAULT_CONTENT } from './routes/siteContent.routes.js';
 
 dotenv.config();
 
@@ -169,6 +173,25 @@ async function seed() {
     else couponsUpdated += 1;
   }
   console.log(`✔ Seeded ${coupons.length} coupons (${couponsCreated} created, ${couponsUpdated} updated).`);
+
+  // Admin account — sign-in is reserved for the admin (guests order without an account).
+  const ADMIN_EMAIL = 'admin@artbylopsang.com';
+  const ADMIN_PASSWORD = 'admin123';
+  const { salt, hash } = hashPassword(ADMIN_PASSWORD);
+  const adminRes = await User.updateOne(
+    { email: ADMIN_EMAIL },
+    { $set: { name: 'Admin', email: ADMIN_EMAIL, salt, hash, isAdmin: true } },
+    { upsert: true }
+  );
+  console.log(
+    `✔ Admin account ready: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}${adminRes.upsertedCount > 0 ? ' (created)' : ' (updated)'}`
+  );
+
+  // Editable homepage sections (hero, gallery, about, contact).
+  const contentRes = await SiteContent.updateOne({ key: 'main' }, { $set: DEFAULT_CONTENT }, { upsert: true });
+  console.log(
+    `✔ Site content seeded (${contentRes.upsertedCount > 0 ? 'created' : 'updated'}).`
+  );
 
   const mongoose = (await import('mongoose')).default;
   await mongoose.disconnect();

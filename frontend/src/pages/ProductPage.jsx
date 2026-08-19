@@ -13,9 +13,56 @@ import { getReviews, createReview } from '../api/review.api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { useRequireLogin } from '../utils/authFlow';
 import { ImageWithFallback } from '../components/ImageWithFallback';
 import { StarRating } from '../components/StarRating';
+
+const featuredStaticArtworks = [
+  {
+    id: 'featured-caravan-1',
+    title: 'Mountain Caravan',
+    imageUrl: '/caravan.webp',
+    image: '/caravan.webp',
+    price: 12500,
+    originalPrice: 15000,
+    discount: 17,
+    category: 'Pen & Ink',
+    medium: 'Ink on Paper',
+    dimensions: '12 × 16 inches',
+    description: 'A detailed pen and ink drawing depicting a caravan of yaks traversing through majestic mountain landscapes.',
+    isOriginal: true,
+    ratingAvg: 4.8,
+    ratingCount: 12,
+  },
+  {
+    id: 'featured-yak-1',
+    title: 'The Yak',
+    imageUrl: '/yak.webp',
+    image: '/yak.webp',
+    price: 9800,
+    originalPrice: 12000,
+    discount: 18,
+    category: 'Pen & Ink',
+    medium: 'Ink on Paper',
+    dimensions: '12 × 16 inches',
+    description: 'A striking portrait of a yak rendered in fine pen and ink, capturing the spirit of the Himalayan highlands.',
+    isOriginal: true,
+    ratingAvg: 4.9,
+    ratingCount: 8,
+  },
+];
+
+// Create a lookup for ALL featured artwork IDs (1-10) so any click works
+const allFeaturedArtworks = [];
+for (let i = 1; i <= 10; i++) {
+  allFeaturedArtworks.push({
+    ...featuredStaticArtworks[0],
+    id: `featured-caravan-${i}`,
+  });
+  allFeaturedArtworks.push({
+    ...featuredStaticArtworks[1],
+    id: `featured-yak-${i}`,
+  });
+}
 
 const BACKGROUND_OPTIONS = [
   { name: 'Pure White', color: '#ffffff', value: 'pure-white' },
@@ -64,6 +111,30 @@ const BACKGROUND_OPTIONS = [
   { name: 'Beige', color: '#f5f5dc', value: 'beige' },
   { name: 'Tan', color: '#d2b48c', value: 'tan' },
   { name: 'Brown', color: '#8b4513', value: 'brown' },
+  { name: 'Periwinkle', color: '#ccccff', value: 'periwinkle' },
+  { name: 'Indigo', color: '#4b0082', value: 'indigo' },
+  { name: 'Plum', color: '#673147', value: 'plum' },
+  { name: 'Wine', color: '#722f37', value: 'wine' },
+  { name: 'Rose', color: '#ff66a1', value: 'rose' },
+  { name: 'Maroon', color: '#800000', value: 'maroon' },
+  { name: 'Chestnut', color: '#954535', value: 'chestnut' },
+  { name: 'Coffee', color: '#6f4e37', value: 'coffee' },
+  { name: 'Mocha', color: '#967969', value: 'mocha' },
+  { name: 'Chocolate', color: '#7b3f00', value: 'chocolate' },
+  { name: 'Khaki', color: '#c3b091', value: 'khaki' },
+  { name: 'Ivory', color: '#fffff0', value: 'ivory' },
+  { name: 'Stone', color: '#a8a29e', value: 'stone' },
+  { name: 'Graphite', color: '#41424c', value: 'graphite' },
+  { name: 'Gunmetal', color: '#2c3539', value: 'gunmetal' },
+  { name: 'Steel Blue', color: '#4682b4', value: 'steel-blue' },
+  { name: 'Cobalt', color: '#0047ab', value: 'cobalt' },
+  { name: 'Cerulean', color: '#007ba7', value: 'cerulean' },
+  { name: 'Cyan', color: '#00ffff', value: 'cyan' },
+  { name: 'Aqua', color: '#7fdbda', value: 'aqua' },
+  { name: 'Seafoam', color: '#b7e4c7', value: 'seafoam' },
+  { name: 'Moss', color: '#8a9a5b', value: 'moss' },
+  { name: 'Fern', color: '#4f7942', value: 'fern' },
+  { name: 'Hunter Green', color: '#355e3b', value: 'hunter-green' },
 ];
 
 export default function ProductPage() {
@@ -72,7 +143,6 @@ export default function ProductPage() {
   const { addToCart, openCheckout } = useCart();
   const { user, isFavorite, toggleFavorite } = useAuth();
   const { push } = useToast();
-  const requireLogin = useRequireLogin();
 
   const [artwork, setArtwork] = useState(null);
   const [related, setRelated] = useState([]);
@@ -89,6 +159,16 @@ export default function ProductPage() {
     if (!id) return;
     setArtwork(null);
     setNotFound(false);
+
+    // Handle static featured artworks (caravan & yak)
+    if (id.startsWith('featured-')) {
+      const staticArt = allFeaturedArtworks.find((a) => a.id === id);
+      if (staticArt) {
+        setArtwork(staticArt);
+        return;
+      }
+    }
+
     getArtworkById(id)
       .then((res) => setArtwork(res.data))
       .catch(() => setNotFound(true));
@@ -107,13 +187,11 @@ export default function ProductPage() {
     BACKGROUND_OPTIONS.find((o) => o.value === selectedBackground)?.color || '#ffffff';
 
   const handleAddToCart = () => {
-    if (!requireLogin({ artworkId: artId, message: 'Sign in to add artworks to your cart' })) return;
     addToCart(artwork);
     push('Added to cart');
   };
 
   const handleBuyNow = () => {
-    if (!requireLogin({ artworkId: artId, action: 'buy', message: 'Sign in to buy this artwork' })) return;
     addToCart(artwork);
     openCheckout();
   };
@@ -210,14 +288,17 @@ export default function ProductPage() {
           <div>
             <div className="flex items-center justify-between">
               <h1 className="text-3xl font-medium text-foreground">{artwork.title}</h1>
-              <button
-                type="button"
-                onClick={handleToggleFavorite}
-                className="p-2 hover:bg-muted rounded-full"
-                title={fav ? 'Remove from wishlist' : 'Add to wishlist'}
-              >
-                <Heart className={`h-6 w-6 ${fav ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`} />
-              </button>
+              {/* Wishlist is a shopping action — hidden for the admin */}
+              {!user?.isAdmin && (
+                <button
+                  type="button"
+                  onClick={handleToggleFavorite}
+                  className="p-2 hover:bg-muted rounded-full"
+                  title={fav ? 'Remove from wishlist' : 'Add to wishlist'}
+                >
+                  <Heart className={`h-6 w-6 ${fav ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`} />
+                </button>
+              )}
             </div>
             <p className="text-muted-foreground text-sm mt-1">{artwork.medium}</p>
             <div className="flex items-center gap-2 mt-2">
@@ -238,28 +319,31 @@ export default function ProductPage() {
           </div>
 
           <div>
-            <p className="text-3xl font-medium text-foreground">${artwork.price ?? 0}</p>
+            <p className="text-3xl font-medium text-foreground">₹{artwork.price ?? 0}</p>
             {artwork.originalPrice ? (
-              <p className="text-muted-foreground line-through">${artwork.originalPrice}</p>
+              <p className="text-muted-foreground line-through">₹{artwork.originalPrice}</p>
             ) : null}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={handleAddToCart}
-              className="h-12 rounded-md border border-primary text-primary font-medium flex items-center justify-center gap-2 hover:bg-primary/5 transition-colors"
-            >
-              <ShoppingCart className="h-5 w-5" /> Add to Cart
-            </button>
-            <button
-              type="button"
-              onClick={handleBuyNow}
-              className="h-12 rounded-md bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity"
-            >
-              Buy Now
-            </button>
-          </div>
+          {/* Add to cart / Buy Now are shopping actions — hidden for the admin */}
+          {!user?.isAdmin && (
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                className="h-12 rounded-md border border-primary text-primary font-medium flex items-center justify-center gap-2 hover:bg-primary/5 transition-colors"
+              >
+                <ShoppingCart className="h-5 w-5" /> Add to Cart
+              </button>
+              <button
+                type="button"
+                onClick={handleBuyNow}
+                className="h-12 rounded-md bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity"
+              >
+                Buy Now
+              </button>
+            </div>
+          )}
 
           <div className="border-t border-border pt-4">
             <h3 className="font-medium mb-3 text-foreground">Description</h3>
@@ -293,7 +377,7 @@ export default function ProductPage() {
           <div className="bg-muted/30 p-4 rounded-lg">
             <h4 className="font-medium mb-2 text-foreground">Shipping & Returns</h4>
             <p className="text-sm text-muted-foreground">
-              Free shipping on orders over $300. Carefully packaged. 30-day return policy. Estimated delivery: 5–7 business days.
+              Free shipping on orders over ₹300. Carefully packaged. 30-day return policy. Estimated delivery: 5–7 business days.
             </p>
           </div>
         </div>
@@ -391,7 +475,7 @@ export default function ProductPage() {
                 </div>
                 <div className="p-4">
                   <h3 className="font-medium text-foreground">{a.title}</h3>
-                  <p className="text-muted-foreground text-sm mt-1">${a.price ?? 0}</p>
+                  <p className="text-muted-foreground text-sm mt-1">₹{a.price ?? 0}</p>
                 </div>
               </Link>
             ))}

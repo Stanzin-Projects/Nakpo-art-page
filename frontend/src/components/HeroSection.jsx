@@ -14,19 +14,17 @@ export function HeroSection({ siteContent }) {
   const heroData = siteContent?.hero || defaultHero;
 
   return (
-    <section id="home" className="min-h-screen flex items-center justify-center relative overflow-hidden scroll-mt-16 pt-16">
-      <div className="absolute inset-0 opacity-5">
-        <div className="w-full h-full bg-gradient-to-br from-primary to-accent" />
-      </div>
+    <section id="home" className="min-h-screen flex items-center justify-center relative overflow-hidden scroll-mt-16 pt-16 bg-white">
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-8 lg:gap-12 items-center relative">
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 lg:gap-16 items-center relative">
         <div className="space-y-8">
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
             <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
             <span>Original Artwork & Prints</span>
           </div>
 
-          <AnimatedTextCaption />
+          <AnimatedTextCaption textSize="text-4xl sm:text-5xl md:text-6xl lg:text-7xl" />
 
           <p className="text-base sm:text-lg text-muted-foreground max-w-md">
             {heroData.subtitle}. {heroData.description}
@@ -49,11 +47,11 @@ export function HeroSection({ siteContent }) {
           </div>
         </div>
 
-        <div className="relative">
+        <div className="relative flex justify-center lg:justify-end">
           <ImageWithFallback
             src={heroData.backgroundImage}
             alt="Featured Artwork by Lopsang"
-            className="w-full aspect-[3/4] object-cover rounded-2xl"
+            className="w-full max-w-lg sm:max-w-xl lg:max-w-2xl aspect-[3/4] object-contain mix-blend-multiply"
           />
         </div>
       </div>

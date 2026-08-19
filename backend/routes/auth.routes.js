@@ -11,31 +11,10 @@ import {
 
 const router = express.Router();
 
+// Registration is closed: guests browse and order without an account, and
+// sign-in is reserved for the admin (seeded by backend/seed.js).
 router.post('/register', async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Name, email and password are required' });
-    }
-    if (String(password).length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
-    }
-    const existing = await User.findOne({ email: String(email).toLowerCase() });
-    if (existing) return res.status(409).json({ message: 'An account with this email already exists' });
-
-    const { salt, hash } = hashPassword(String(password));
-    const user = await User.create({ name, email: String(email).toLowerCase(), salt, hash });
-    await Notification.create({
-      user: user._id,
-      title: 'Welcome to ARTBYLOPSANG 🎉',
-      message: `Thanks for joining, ${name}! Use code WELCOME15 for 15% off your first order.`,
-      type: 'promo',
-      link: '/gallery',
-    });
-    res.status(201).json({ token: createToken(user._id), user: user.toSafe() });
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
+  res.status(403).json({ message: 'Registration is closed — guests can browse and order directly. Only the admin can sign in.' });
 });
 
 router.post('/login', async (req, res) => {
@@ -44,6 +23,9 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email: String(email || '').toLowerCase() });
     if (!user || !verifyPassword(String(password || ''), user.salt, user.hash)) {
       return res.status(401).json({ message: 'Invalid email or password' });
+    }
+    if (!user.isAdmin) {
+      return res.status(403).json({ message: 'Only the admin can sign in. Guests can browse and order directly without an account.' });
     }
     res.json({ token: createToken(user._id), user: user.toSafe() });
   } catch (error) {

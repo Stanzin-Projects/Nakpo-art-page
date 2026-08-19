@@ -73,19 +73,21 @@ export function Navigation({ onTrackClick }) {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Wishlist */}
-            <Link
-              to="/wishlist"
-              className="relative inline-flex items-center justify-center h-9 w-9 rounded-md border border-border hover:bg-muted transition-colors"
-              title="Wishlist"
-            >
-              <Heart className="h-4 w-4" />
-              {userCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full h-5 w-5 flex items-center justify-center text-xs">
-                  {userCount}
-                </span>
-              )}
-            </Link>
+            {/* Wishlist — shopping only, hidden for the admin */}
+            {!user?.isAdmin && (
+              <Link
+                to="/wishlist"
+                className="relative inline-flex items-center justify-center h-9 w-9 rounded-md border border-border hover:bg-muted transition-colors"
+                title="Wishlist"
+              >
+                <Heart className="h-4 w-4" />
+                {userCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full h-5 w-5 flex items-center justify-center text-xs">
+                    {userCount}
+                  </span>
+                )}
+              </Link>
+            )}
 
             {/* Notifications */}
             {token && (
@@ -113,20 +115,22 @@ export function Navigation({ onTrackClick }) {
               <Package className="h-4 w-4" />
             </button>
 
-            {/* Cart */}
-            <button
-              type="button"
-              onClick={openCart}
-              className="relative inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-background text-sm font-medium hover:bg-muted transition-colors"
-              title="Shopping cart"
-            >
-              <ShoppingCart className="h-4 w-4" />
-              {itemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full h-5 w-5 flex items-center justify-center text-xs">
-                  {itemCount}
-                </span>
-              )}
-            </button>
+            {/* Cart — shopping only, hidden for the admin */}
+            {!user?.isAdmin && (
+              <button
+                type="button"
+                onClick={openCart}
+                className="relative inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-background text-sm font-medium hover:bg-muted transition-colors"
+                title="Shopping cart"
+              >
+                <ShoppingCart className="h-4 w-4" />
+                {itemCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full h-5 w-5 flex items-center justify-center text-xs">
+                    {itemCount}
+                  </span>
+                )}
+              </button>
+            )}
 
             {/* User menu */}
             {token && user ? (
@@ -141,6 +145,11 @@ export function Navigation({ onTrackClick }) {
                 </button>
                 {isUserMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-background border border-border rounded-lg shadow-lg py-1 z-50">
+                    {user.isAdmin && (
+                      <Link to="/admin" className="block px-4 py-2 text-sm hover:bg-muted">
+                        Admin Panel
+                      </Link>
+                    )}
                     <Link to="/account" className="block px-4 py-2 text-sm hover:bg-muted">
                       Dashboard
                     </Link>
@@ -198,9 +207,11 @@ export function Navigation({ onTrackClick }) {
                 {item.label}
               </a>
             ))}
-            <Link to="/wishlist" className="block text-foreground/80 hover:text-foreground px-3 py-2 text-sm">
-              Wishlist
-            </Link>
+            {!user?.isAdmin && (
+              <Link to="/wishlist" className="block text-foreground/80 hover:text-foreground px-3 py-2 text-sm">
+                Wishlist
+              </Link>
+            )}
             <Link to="/account" className="block text-foreground/80 hover:text-foreground px-3 py-2 text-sm">
               My Account
             </Link>

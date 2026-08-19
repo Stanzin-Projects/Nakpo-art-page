@@ -1,6 +1,18 @@
 import Artwork from '../models/Artwork.model.js';
 import Review from '../models/Review.model.js';
 
+// Form-data (file uploads) arrives as strings — coerce fields back to numbers/booleans.
+function coerceFields(body) {
+  const out = { ...body };
+  for (const key of ['price', 'originalPrice', 'discount', 'year', 'order']) {
+    if (out[key] !== undefined && out[key] !== null && out[key] !== '') out[key] = Number(out[key]);
+  }
+  for (const key of ['isFeatured', 'isOriginal']) {
+    if (out[key] !== undefined) out[key] = out[key] === true || out[key] === 'true';
+  }
+  return out;
+}
+
 async function attachRatings(artworks) {
   const ids = artworks.map((a) => a._id);
   const ratings = await Review.aggregate([
@@ -45,8 +57,10 @@ export const getArtworkById = async (req, res) => {
 
 export const createArtwork = async (req, res) => {
   try {
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : req.body.imageUrl;
-    const artwork = await Artwork.create({ ...req.body, imageUrl });
+    const data = coerceFields(req.body);
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : data.imageUrl;
+    if (!imageUrl) return res.status(400).json({ message: 'An image is required (upload a file or provide an image URL)' });
+    const artwork = await Artwork.create({ ...data, imageUrl });
     res.status(201).json(artwork);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -55,7 +69,9 @@ export const createArtwork = async (req, res) => {
 
 export const updateArtwork = async (req, res) => {
   try {
-    const artwork = await Artwork.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const data = coerceFields(req.body);
+    if (req.file) data.imageUrl = `/uploads/${req.file.filename}`;
+    const artwork = await Artwork.findByIdAndUpdate(req.params.id, data, { new: true, runValidators: true });
     if (!artwork) return res.status(404).json({ message: 'Artwork not found' });
     res.json(artwork);
   } catch (error) {

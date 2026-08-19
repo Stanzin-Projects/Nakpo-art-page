@@ -5,10 +5,24 @@ const FALLBACK_SRC =
 
 export function ImageWithFallback({ src, alt, className, ...rest }) {
   const [didError, setDidError] = useState(false);
+
+  // The site's images are protected: no right-click save/open, no dragging.
+  const protect = (e) => e.preventDefault();
+
   if (didError) {
     return (
-      <div className={`inline-flex items-center justify-center bg-muted text-muted-foreground ${className || ''}`} {...rest}>
-        <img src={FALLBACK_SRC} alt={alt || 'Image'} className="max-w-full max-h-full object-contain opacity-50" />
+      <div
+        className={`inline-flex items-center justify-center bg-muted text-muted-foreground ${className || ''}`}
+        onContextMenu={protect}
+        {...rest}
+      >
+        <img
+          src={FALLBACK_SRC}
+          alt={alt || 'Image'}
+          draggable={false}
+          onContextMenu={protect}
+          className="max-w-full max-h-full object-contain opacity-50"
+        />
       </div>
     );
   }
@@ -16,6 +30,9 @@ export function ImageWithFallback({ src, alt, className, ...rest }) {
     <img
       src={src}
       alt={alt}
+      draggable={false}
+      onContextMenu={protect}
+      onDragStart={protect}
       className={className}
       onError={() => setDidError(true)}
       {...rest}

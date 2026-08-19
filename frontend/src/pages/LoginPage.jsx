@@ -35,9 +35,9 @@ export default function LoginPage() {
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
-        <h1 className="text-2xl font-medium text-center mb-2">Sign In</h1>
+        <h1 className="text-2xl font-medium text-center mb-2">Admin Sign In</h1>
         <p className="text-muted-foreground text-sm text-center mb-8">
-          Welcome back to ARTBYLOPSANG
+          Sign-in is reserved for the admin. Guests can browse, select and order artworks directly without an account.
         </p>
         <form onSubmit={handleSubmit} className="space-y-4 border border-border rounded-lg p-6 bg-background">
           {error && <p className="text-sm text-red-600 bg-red-50 rounded-md p-2">{error}</p>}
@@ -72,12 +72,6 @@ export default function LoginPage() {
           </button>
         </form>
         <div className="text-center text-sm mt-6 space-y-2">
-          <p className="text-muted-foreground">
-            New here?{' '}
-            <Link to="/register" className="text-primary hover:underline font-medium">
-              Create an account
-            </Link>
-          </p>
           <p>
             <Link to="/forgot-password" className="text-muted-foreground hover:text-primary">
               Forgot your password?

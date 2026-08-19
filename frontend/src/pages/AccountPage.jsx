@@ -363,12 +363,12 @@ export default function AccountPage() {
                           <img src={item.image} alt={item.title} className="w-10 h-10 rounded object-cover" />
                         )}
                         <span className="flex-1">{item.title} × {item.quantity}</span>
-                        <span className="text-muted-foreground">${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</span>
+                        <span className="text-muted-foreground">₹{((item.price || 0) * (item.quantity || 1)).toFixed(2)}</span>
                       </div>
                     ))}
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-                    <span className="font-medium">Total: ${o.total}</span>
+                    <span className="font-medium">Total: ₹{o.total}</span>
                     <div className="flex gap-2">
                       <button
                         type="button"

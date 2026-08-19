@@ -14,6 +14,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import AccountPage from './pages/AccountPage';
 import WishlistPage from './pages/WishlistPage';
+import AdminPage from './pages/AdminPage';
 
 function ScrollManager() {
   const location = useLocation();
@@ -40,7 +41,38 @@ function ScrollManager() {
   return null;
 }
 
+// Protect the site's images: no right-click save/open-in-new-tab, no dragging,
+// and no devtools/save shortcuts. (A determined user can still fetch the raw file
+// via the network tab — that is a fundamental browser limitation.)
+function useImageProtection() {
+  useEffect(() => {
+    const onContextMenu = (e) => {
+      if (e.target.closest('img') || e.target.closest('video')) e.preventDefault();
+    };
+    const onDragStart = (e) => {
+      if (e.target.closest('img') || e.target.closest('video')) e.preventDefault();
+    };
+    const onKeyDown = (e) => {
+      const k = e.key.toLowerCase();
+      const isSaveOrViewSource =
+        (e.ctrlKey || e.metaKey) && ['s', 'u', 'p'].includes(k);
+      const isDevTools =
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && ['i', 'j', 'c'].includes(k)) || e.key === 'F12';
+      if (isSaveOrViewSource || isDevTools) e.preventDefault();
+    };
+    document.addEventListener('contextmenu', onContextMenu);
+    document.addEventListener('dragstart', onDragStart);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('contextmenu', onContextMenu);
+      document.removeEventListener('dragstart', onDragStart);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, []);
+}
+
 function AppContent() {
+  useImageProtection();
   const {
     isCartOpen,
     closeCart,
@@ -67,6 +99,7 @@ function AppContent() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/account" element={<AccountPage />} />
+          <Route path="/admin" element={<AdminPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="*" element={<HomePage />} />
         </Routes>

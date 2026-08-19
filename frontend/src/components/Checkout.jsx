@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { CreditCard, Lock, CheckCircle, ArrowLeft, Package, Tag, X } from 'lucide-react';
 import { createOrder } from '../api/order.api';
 import { validateCoupon } from '../api/coupon.api';
@@ -58,7 +57,7 @@ export function Checkout({ isOpen, onClose, onOrderComplete }) {
     try {
       const res = await validateCoupon(couponCode, subtotal);
       setCoupon(res.data);
-      push(`Coupon ${res.data.code} applied — you save $${res.data.discount}`);
+      push(`Coupon ${res.data.code} applied — you save ₹${res.data.discount}`);
     } catch (err) {
       setCoupon(null);
       setCouponError(err.response?.data?.message || 'Invalid coupon');
@@ -139,39 +138,6 @@ export function Checkout({ isOpen, onClose, onOrderComplete }) {
 
   if (!isOpen) return null;
 
-  // buying is only available to signed-in users
-  if (!user) {
-    return (
-      <>
-        <div className="fixed inset-0 bg-black/50 z-50" onClick={resetAndClose} aria-hidden />
-        <div className="fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 z-50 w-full max-w-md bg-background rounded-lg shadow-2xl p-8 text-center">
-          <Lock className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-medium mb-2">Sign in to Checkout</h2>
-          <p className="text-muted-foreground text-sm mb-6">
-            Your cart is saved — sign in or create an account to complete your purchase.
-          </p>
-          <div className="space-y-3">
-            <Link
-              to="/login"
-              className="block w-full h-11 rounded-md bg-primary text-primary-foreground font-medium flex items-center justify-center"
-            >
-              Sign In
-            </Link>
-            <Link
-              to="/register"
-              className="block w-full h-11 rounded-md border border-border font-medium flex items-center justify-center"
-            >
-              Create Account
-            </Link>
-            <button type="button" onClick={resetAndClose} className="text-sm text-muted-foreground hover:text-foreground">
-              Continue Shopping
-            </button>
-          </div>
-        </div>
-      </>
-    );
-  }
-
   return (
     <>
       <div className="fixed inset-0 bg-black/50 z-50" onClick={resetAndClose} aria-hidden />
@@ -201,34 +167,34 @@ export function Checkout({ isOpen, onClose, onOrderComplete }) {
                 <div className="flex-1">
                   <h4 className="font-medium text-sm">{item.title}</h4>
                   <p className="text-muted-foreground text-sm">Qty: {item.quantity || 1}</p>
-                  <p className="font-medium text-sm">${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</p>
+                  <p className="font-medium text-sm">₹{((item.price || 0) * (item.quantity || 1)).toFixed(2)}</p>
                 </div>
               </div>
             ))}
             <div className="border-t border-border pt-4 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>₹{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Shipping</span>
-                <span>{shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`}</span>
+                <span>{shipping === 0 ? 'Free' : `₹${shipping.toFixed(2)}`}</span>
               </div>
               <div className="flex justify-between">
                 <span>Tax</span>
-                <span>${tax.toFixed(2)}</span>
+                <span>₹{tax.toFixed(2)}</span>
               </div>
               {coupon && (
                 <div className="flex justify-between text-green-700">
                   <span className="flex items-center gap-1">
                     <Tag className="h-3 w-3" /> Coupon {coupon.code}
                   </span>
-                  <span>−${discount.toFixed(2)}</span>
+                  <span>−₹{discount.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between font-medium text-lg pt-2">
                 <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+                <span>₹{total.toFixed(2)}</span>
               </div>
             </div>
 
@@ -369,7 +335,7 @@ export function Checkout({ isOpen, onClose, onOrderComplete }) {
                   ) : (
                     <>
                       <Lock className="h-4 w-4" />
-                      Pay ${total.toFixed(2)}
+                      Pay ₹{total.toFixed(2)}
                     </>
                   )}
                 </button>
@@ -386,7 +352,7 @@ export function Checkout({ isOpen, onClose, onOrderComplete }) {
                     <Package className="h-4 w-4 text-green-600" />
                     <p className="font-medium text-green-700">Order #{orderNumber}</p>
                   </div>
-                  <p className="text-sm text-green-700">Total: ${total.toFixed(2)}</p>
+                  <p className="text-sm text-green-700">Total: ₹{total.toFixed(2)}</p>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {user ? 'Track it from your dashboard.' : 'You can track your order using your order number.'}

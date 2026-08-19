@@ -6,14 +6,12 @@ import { getFavorites } from '../api/user.api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
-import { useRequireLogin } from '../utils/authFlow';
 import { ImageWithFallback } from '../components/ImageWithFallback';
 
 export default function WishlistPage() {
   const { user, favoriteIds, toggleFavorite } = useAuth();
   const { addToCart } = useCart();
   const { push } = useToast();
-  const requireLogin = useRequireLogin();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -90,12 +88,11 @@ export default function WishlistPage() {
                   </Link>
                   <p className="text-muted-foreground text-sm mt-1">{art.medium}</p>
                   <div className="flex items-center justify-between mt-4">
-                    <span className="font-medium">${art.price ?? 0}</span>
+                    <span className="font-medium">₹{art.price ?? 0}</span>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={() => {
-                          if (!requireLogin({ artworkId: id, message: 'Sign in to add artworks to your cart' })) return;
                           addToCart(art);
                           push('Added to cart');
                         }}

@@ -15,6 +15,7 @@ import userRoutes from './routes/user.routes.js';
 import reviewRoutes from './routes/review.routes.js';
 import couponRoutes from './routes/coupon.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
+import siteContentRoutes from './routes/siteContent.routes.js';
 
 dotenv.config();
 
@@ -43,6 +44,7 @@ app.use('/api/users', userRoutes);
 app.use('/api', reviewRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/site-content', siteContentRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
