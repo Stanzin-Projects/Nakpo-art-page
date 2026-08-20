@@ -51,7 +51,7 @@ export function HeroSection({ siteContent }) {
           <ImageWithFallback
             src={heroData.backgroundImage}
             alt="Featured Artwork by Lopsang"
-            className="w-full max-w-lg sm:max-w-xl lg:max-w-2xl aspect-[3/4] object-contain mix-blend-multiply"
+            className="w-full max-w-2xl sm:max-w-3xl lg:max-w-4xl aspect-[3/4] object-contain mix-blend-multiply"
           />
         </div>
       </div>

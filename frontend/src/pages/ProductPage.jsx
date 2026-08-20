@@ -149,6 +149,33 @@ export default function ProductPage() {
   const [reviews, setReviews] = useState({ reviews: [], average: 0, count: 0 });
   const [selectedBackground, setSelectedBackground] = useState('pure-white');
   const [notFound, setNotFound] = useState(false);
+  const [wallImage, setWallImage] = useState(null);
+  const [artPosition, setArtPosition] = useState({ x: 50, y: 50, scale: 30 });
+
+  const handleWallUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setWallImage(ev.target.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDragArt = (e) => {
+    e.preventDefault();
+    const box = e.currentTarget.parentElement.getBoundingClientRect();
+    const onMove = (ev) => {
+      const x = ((ev.clientX - box.left) / box.width) * 100;
+      const y = ((ev.clientY - box.top) / box.height) * 100;
+      setArtPosition((p) => ({ ...p, x: Math.max(5, Math.min(95, x)), y: Math.max(5, Math.min(95, y)) }));
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
 
   // review form
   const [rating, setRating] = useState(5);
@@ -266,21 +293,51 @@ export default function ProductPage() {
                   key={opt.value}
                   type="button"
                   onClick={() => setSelectedBackground(opt.value)}
-                  className={`w-8 h-8 rounded-lg border-2 transition-all ${
-                    selectedBackground === opt.value ? 'border-primary ring-2 ring-primary/20' : 'border-border'
-                  }`}
+                  className={"w-8 h-8 rounded-lg border-2 transition-all " + (selectedBackground === opt.value ? 'border-primary ring-2 ring-primary/20' : 'border-border')}
                   style={{ backgroundColor: opt.color }}
                   title={opt.name}
                 />
               ))}
             </div>
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-sm font-medium">Upload Your Wall</span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">Upload a photo of your wall to see how this art will look in your space.</p>
+              <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                <div className="flex flex-col items-center justify-center">
+                  <span className="text-sm text-muted-foreground">Click to upload wall photo</span>
+                </div>
+                <input type="file" className="hidden" accept="image/*" onChange={handleWallUpload} />
+              </label>
+              {wallImage && (
+                <button type="button" onClick={() => setWallImage(null)} className="mt-2 text-xs text-red-500 hover:text-red-600">Remove wall photo</button>
+              )}
+            </div>
           </div>
-          <div
-            className="w-full aspect-square flex items-center justify-center p-8 rounded-lg transition-colors border border-border"
-            style={{ backgroundColor: bgColor }}
-          >
-            <ImageWithFallback src={imageSrc} alt={artwork.title} className="max-w-full max-h-full object-contain" />
-          </div>
+
+          {wallImage && (
+            <div className="relative w-full aspect-square rounded-lg overflow-hidden border border-border">
+              <img src={wallImage} alt="Your wall" className="absolute inset-0 w-full h-full object-cover" />
+              <div
+                className="absolute cursor-move select-none"
+                style={{ left: artPosition.x + '%', top: artPosition.y + '%', transform: 'translate(-50%, -50%)' }}
+                onMouseDown={handleDragArt}
+              >
+                <ImageWithFallback src={imageSrc} alt={artwork.title} className="pointer-events-none drop-shadow-2xl" style={{ width: artPosition.scale + '%', height: 'auto' }} />
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 p-3 flex items-center gap-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                <span className="text-white text-xs whitespace-nowrap">Art Size:</span>
+                <input type="range" min="10" max="80" value={artPosition.scale} onChange={(e) => setArtPosition((p) => ({ ...p, scale: Number(e.target.value) }))} className="flex-1" />
+                <span className="text-white text-xs">Drag art to position</span>
+              </div>
+            </div>
+          )}
+          {!wallImage && (
+            <div className="w-full aspect-square flex items-center justify-center p-8 rounded-lg transition-colors border border-border" style={{ backgroundColor: bgColor }}>
+              <ImageWithFallback src={imageSrc} alt={artwork.title} className="max-w-full max-h-full object-contain" />
+            </div>
+          )}
         </div>
 
         {/* Info */}

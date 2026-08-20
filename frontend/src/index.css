@@ -81,7 +81,7 @@
 }
 
 .image-marquee-track {
-  animation: image-marquee 75s linear infinite;
+  animation: image-marquee 250s linear infinite;
   will-change: transform;
 }
 
