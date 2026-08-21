@@ -49,7 +49,7 @@
 }
 
 .gallery-marquee-track {
-  animation: gallery-marquee 150s linear infinite;
+  animation: gallery-marquee 600s linear infinite;
   will-change: transform;
 }
 
@@ -81,7 +81,7 @@
 }
 
 .image-marquee-track {
-  animation: image-marquee 250s linear infinite;
+  animation: image-marquee 60s linear infinite;
   will-change: transform;
 }
 
