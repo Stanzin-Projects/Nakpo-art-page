@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, Star } from 'lucide-react';
 import { ImageWithFallback } from './ImageWithFallback';
 import { AnimatedTextCaption } from './AnimatedTextCaption';
@@ -7,11 +8,72 @@ const defaultHero = {
   subtitle: 'Discover unique artworks that speak to your heart',
   description: 'From abstract expressions to realistic portraits, each piece tells a story waiting to be part of yours.',
   ctaText: 'Explore Gallery',
-  backgroundImage: 'https://images.cdn-files-a.com/uploads/7871374/2000_644d45ca0954b.png',
+  backgroundImage: '/artworks/art1.webp',
 };
 
-export function HeroSection({ siteContent }) {
+const HOLD_MS = 4000;
+const FADE_OUT_MS = 450;
+const FADE_IN_MS = 700;
+
+function prefersReducedMotion() {
+  return typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+export function HeroSection({ siteContent, artworks = [] }) {
   const heroData = siteContent?.hero || defaultHero;
+
+  // The hero shows the gallery itself: every unique artwork image, in turn.
+  const slides = useMemo(() => {
+    const fromApi = artworks.map((a) => a.image || a.imageUrl).filter(Boolean);
+    const unique = [...new Set(fromApi)];
+    return unique.length ? unique : [heroData.backgroundImage];
+  }, [artworks, heroData.backgroundImage]);
+
+  // One image is on screen at a time: it fades out, we swap the source, then
+  // the next one fades in. Nothing ever overlaps.
+  const [index, setIndex] = useState(0);
+  const [phase, setPhase] = useState('in');
+  const timers = useRef([]);
+
+  // Fall back to the first slide when the artwork list changes underneath us.
+  useEffect(() => {
+    if (index >= slides.length) {
+      setIndex(0);
+      setPhase('in');
+    }
+  }, [slides.length, index]);
+
+  useEffect(() => {
+    const clear = () => {
+      timers.current.forEach((id) => clearTimeout(id));
+      timers.current = [];
+    };
+    clear();
+    if (slides.length < 2 || prefersReducedMotion()) return clear;
+
+    const hold = setInterval(() => {
+      setPhase('out');
+      timers.current.push(
+        setTimeout(() => {
+          setIndex((i) => (i + 1) % slides.length);
+          setPhase('in');
+        }, FADE_OUT_MS)
+      );
+    }, HOLD_MS);
+
+    return () => {
+      clearInterval(hold);
+      clear();
+    };
+  }, [slides.length]);
+
+  useEffect(() => () => timers.current.forEach((id) => clearTimeout(id)), []);
+
+  const anim = prefersReducedMotion()
+    ? ''
+    : phase === 'out'
+      ? 'hero-slide-out'
+      : 'hero-slide-in';
 
   return (
     <section id="home" className="min-h-screen flex items-center justify-center relative overflow-hidden scroll-mt-16 pt-16 bg-white">
@@ -48,11 +110,14 @@ export function HeroSection({ siteContent }) {
         </div>
 
         <div className="relative flex justify-center lg:justify-end">
-          <ImageWithFallback
-            src={heroData.backgroundImage}
-            alt="Featured Artwork by Lopsang"
-            className="w-full max-w-2xl sm:max-w-3xl lg:max-w-4xl aspect-[3/4] object-contain mix-blend-multiply"
-          />
+          <div className="relative w-full max-w-2xl sm:max-w-3xl lg:max-w-4xl aspect-[3/4]">
+            <ImageWithFallback
+              key={slides[index]}
+              src={slides[index]}
+              alt="Featured Artwork by Lopsang"
+              className={`w-full h-full object-contain mix-blend-multiply ${anim}`}
+            />
+          </div>
         </div>
       </div>
 

@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { ImageWithFallback } from '../components/ImageWithFallback';
+import { flyToCart } from '../utils/flyToCart';
 
 export default function WishlistPage() {
   const { user, favoriteIds, toggleFavorite } = useAuth();
@@ -72,7 +73,7 @@ export default function WishlistPage() {
             const id = art._id || art.id;
             const image = art.imageUrl || art.image;
             return (
-              <div key={String(id)} className="border border-border rounded-lg overflow-hidden flex flex-col">
+              <div key={String(id)} data-cart-source className="border border-border rounded-lg overflow-hidden flex flex-col">
                 <Link to={`/product/${id}`} className="block">
                   <div className="aspect-[4/5] overflow-hidden bg-muted">
                     <ImageWithFallback
@@ -92,7 +93,11 @@ export default function WishlistPage() {
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={(e) => {
+                          const source =
+                            e.currentTarget.closest('[data-cart-source]')?.querySelector('img') ||
+                            e.currentTarget;
+                          flyToCart({ from: source, image });
                           addToCart(art);
                           push('Added to cart');
                         }}

@@ -1,5 +1,6 @@
 import Order from '../models/Order.model.js';
 import Notification from '../models/Notification.model.js';
+import { alertAdminsOfNewOrder } from '../utils/orderAlerts.js';
 
 function defaultTimeline() {
   const now = new Date().toISOString();
@@ -47,19 +48,40 @@ export const createOrder = async (req, res) => {
       });
     }
 
+    // Live push + email to the studio — skipped when an admin orders themselves.
+    if (!req.user || !req.user.isAdmin) {
+      await alertAdminsOfNewOrder(order);
+    }
+
     res.status(201).json(order);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
 
+const escapeRegex = (value) => String(value).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Order lookup: a guest may look up a single order by its number; looking up a
+// whole history by email is only allowed for that signed-in buyer (or the admin).
 export const getOrdersByQuery = async (req, res) => {
   try {
     const { orderNumber, email } = req.query;
+    if (!orderNumber && !email) {
+      return res.status(400).json({ message: 'Provide an order number or an email address' });
+    }
     const filter = {};
-    if (orderNumber) filter.orderNumber = new RegExp(orderNumber, 'i');
-    if (email) filter['customer.email'] = new RegExp(email, 'i');
-    const orders = await Order.find(filter).sort({ createdAt: -1 });
+    if (orderNumber) filter.orderNumber = new RegExp('^' + escapeRegex(orderNumber), 'i');
+    if (email) {
+      if (!req.user) {
+        return res.status(401).json({ message: 'Sign in to look up your orders by email' });
+      }
+      const own = req.user.email?.toLowerCase() === String(email).toLowerCase();
+      if (!own && !req.user.isAdmin) {
+        return res.status(403).json({ message: 'You can only view your own orders' });
+      }
+      filter['customer.email'] = new RegExp('^' + escapeRegex(email) + '$', 'i');
+    }
+    const orders = await Order.find(filter).sort({ createdAt: -1 }).limit(50);
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: error.message });

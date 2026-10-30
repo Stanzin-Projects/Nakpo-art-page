@@ -71,7 +71,11 @@ export const updateArtwork = async (req, res) => {
   try {
     const data = coerceFields(req.body);
     if (req.file) data.imageUrl = `/uploads/${req.file.filename}`;
-    const artwork = await Artwork.findByIdAndUpdate(req.params.id, data, { new: true, runValidators: true });
+    const update = { $set: data };
+    // A manual price edit wins over a running sale: drop the sale baseline so
+    // ending the sale later cannot overwrite the new price.
+    if (data.price !== undefined) update.$unset = { priceBeforeSale: '' };
+    const artwork = await Artwork.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
     if (!artwork) return res.status(404).json({ message: 'Artwork not found' });
     res.json(artwork);
   } catch (error) {

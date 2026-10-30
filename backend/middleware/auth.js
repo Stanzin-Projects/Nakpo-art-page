@@ -9,6 +9,7 @@ export async function requireAuth(req, res, next) {
     if (!userId) return res.status(401).json({ message: 'Authentication required' });
     const user = await User.findById(userId);
     if (!user) return res.status(401).json({ message: 'User not found' });
+    if (user.isActive === false) return res.status(403).json({ message: 'This account has been deactivated' });
     req.user = user;
     next();
   } catch (error) {
@@ -25,6 +26,7 @@ export async function requireAdmin(req, res, next) {
     if (!userId) return res.status(401).json({ message: 'Authentication required' });
     const user = await User.findById(userId);
     if (!user) return res.status(401).json({ message: 'User not found' });
+    if (user.isActive === false) return res.status(403).json({ message: 'This account has been deactivated' });
     if (!user.isAdmin) return res.status(403).json({ message: 'Admin access required' });
     req.user = user;
     next();
@@ -41,7 +43,7 @@ export async function optionalAuth(req, res, next) {
     const userId = token ? verifyToken(token) : null;
     if (userId) {
       const user = await User.findById(userId);
-      if (user) req.user = user;
+      if (user && user.isActive !== false) req.user = user;
     }
     next();
   } catch (error) {

@@ -13,12 +13,13 @@ const defaultAbout = {
   subtitle: 'Creating meaningful connections through art',
   description:
     'With over a decade of experience in contemporary art, I create pieces that bridge the gap between traditional techniques and modern expression. My work explores themes of nature, human emotion, and the interconnectedness of all things.',
-  image: 'https://images.cdn-files-a.com/uploads/7871374/2000_644a7ebe3625f_filter_645ca89d0848f.png',
+  image:
+    'https://images.cdn-files-a.com/uploads/7871374/2000_644a7ebe3625f_filter_645ca89d0848f.png',
   stats: [
     { value: '200+', label: 'Artworks Created' },
     { value: '15', label: 'Exhibitions' },
-    { value: '500+', label: 'Happy Collectors' },
-    { value: '12', label: 'Years of Passion' },
+    { value: '50+', label: 'Happy Collectors' },
+    { value: '7', label: 'Years of Passion' },
   ],
 };
 

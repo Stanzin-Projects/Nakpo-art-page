@@ -21,6 +21,8 @@ const userSchema = new mongoose.Schema(
     salt: { type: String, required: true },
     hash: { type: String, required: true },
     isAdmin: { type: Boolean, default: false },
+    // Deactivated accounts keep their data but can no longer sign in or act.
+    isActive: { type: Boolean, default: true },
     addresses: [addressSchema],
     favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Artwork' }],
     resetToken: String,
@@ -35,6 +37,7 @@ userSchema.methods.toSafe = function toSafe() {
     name: this.name,
     email: this.email,
     isAdmin: this.isAdmin || false,
+    isActive: this.isActive !== false,
     addresses: this.addresses || [],
     favorites: this.favorites || [],
     createdAt: this.createdAt,

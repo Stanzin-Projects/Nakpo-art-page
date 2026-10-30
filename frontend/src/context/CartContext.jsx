@@ -24,6 +24,9 @@ function normalize(item) {
     medium: item.medium,
     price: item.price,
     quantity: item.quantity || 1,
+    selectedDimension: item.selectedDimension || '',
+    selectedFrame: item.selectedFrame || 'No Frame',
+    selectedFrameColor: item.selectedFrameColor || 'transparent',
   };
 }
 
@@ -41,9 +44,17 @@ export function CartProvider({ children }) {
   const addToCart = useCallback((artwork) => {
     const item = normalize(artwork);
     setCartItems((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
+      // Treat same artwork with different dimensions or frame as separate items
+      const existing = prev.find(
+        (i) =>
+          i.id === item.id &&
+          i.selectedDimension === item.selectedDimension &&
+          i.selectedFrame === item.selectedFrame
+      );
       if (existing) {
-        return prev.map((i) => (i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i));
+        return prev.map((i) =>
+          i === existing ? { ...i, quantity: i.quantity + 1 } : i
+        );
       }
       return [...prev, item];
     });

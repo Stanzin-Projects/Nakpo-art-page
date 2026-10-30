@@ -16,6 +16,7 @@ import reviewRoutes from './routes/review.routes.js';
 import couponRoutes from './routes/coupon.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import siteContentRoutes from './routes/siteContent.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 
 dotenv.config();
 
@@ -45,6 +46,7 @@ app.use('/api', reviewRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/site-content', siteContentRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
@@ -57,6 +59,10 @@ app.use((err, req, res, next) => {
     message: err.message || 'Internal server error',
   });
 });
+
+if (!String(process.env.RESEND_API_KEY || '').trim()) {
+  console.warn('✉️  Email disabled — set RESEND_API_KEY in backend/.env to send welcome and account emails.');
+}
 
 connectDB().then(() => {
   app.listen(PORT, () => {

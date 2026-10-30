@@ -1,10 +1,9 @@
-// Seed the gallery with the artist's black-and-white artwork.
-// Currently every gallery card uses the same image (frontend/public/yak-artwork.png,
-// served at /yak-artwork.png) — swap in more images by editing the entries below
-// (e.g. drop files in frontend/public and use /your-file.png).
+// Seed the gallery with the artist's framed works.
+// Images live in frontend/public/artworks and are served at /artworks/artN.webp.
 // Idempotent AND authoritative: re-running updates the listed titles and deletes
 // any artwork not listed here, so the gallery always matches this seed exactly.
 import dotenv from 'dotenv';
+import { pathToFileURL } from 'url';
 import { connectDB } from './config/database.js';
 import Artwork from './models/Artwork.model.js';
 import Coupon from './models/Coupon.model.js';
@@ -15,113 +14,192 @@ import { DEFAULT_CONTENT } from './routes/siteContent.routes.js';
 
 dotenv.config();
 
-const IMAGE_URL = '/yak-artwork.png';
+const img = (n) => `/artworks/art${n}.webp`;
 
-const artworks = [
+export const artworks = [
   {
-    title: 'Yak Study I',
+    title: 'Shadows on the Summit',
     description:
-      'A black-and-white ink study of the Himalayan yak — heavy cross-hatching and stippling capture the shaggy fur, curved horns, and quiet strength of the high mountains.',
-    imageUrl: IMAGE_URL,
+      'A lone peak rising out of a moonless black sky — fine cross-hatching builds the ice and scree of the high Himalaya until the mountain seems to carry its own light.',
+    imageUrl: img(1),
     category: 'Black & White',
-    price: 420,
-    originalPrice: 560,
-    discount: 25,
-    dimensions: '50 × 50 cm',
+    price: 640,
+    originalPrice: 800,
+    discount: 20,
+    dimensions: '40 × 55 cm',
     medium: 'Pen & Ink',
     isOriginal: true,
     isFeatured: true,
   },
   {
-    title: 'Yak Study II',
+    title: 'The Valley Road',
     description:
-      'The yak rendered in dense black linework against the light — a study in texture, shadow, and the presence of an animal that carries whole communities.',
-    imageUrl: IMAGE_URL,
-    category: 'Black & White',
-    price: 680,
-    dimensions: '50 × 50 cm',
-    medium: 'Pen & Ink',
-    isOriginal: true,
-  },
-  {
-    title: 'Yak Study III',
-    description:
-      'A bold monochrome portrait of the yak — confident contour lines and stark negative space, drawn from a life shaped by the Zanskar mountains.',
-    imageUrl: IMAGE_URL,
-    category: 'Black & White',
+      'A colour study of the road into Zanskar: a grey cloud trailing across a flat blue sky, a pale sun, and a river braiding through ochre and olive slopes.',
+    imageUrl: img(2),
+    category: 'Colour',
     price: 720,
-    dimensions: '50 × 50 cm',
+    dimensions: '40 × 55 cm',
+    medium: 'Ink & Colour',
+    isOriginal: true,
+    isFeatured: true,
+  },
+  {
+    title: 'Gorge of the Zanskar',
+    description:
+      'Black ink on white paper, worked until the gorge reads as depth itself — rock spires, a dark running river, and the pale road that follows it.',
+    imageUrl: img(3),
+    category: 'Black & White',
+    price: 580,
+    dimensions: '40 × 55 cm',
     medium: 'Pen & Ink',
     isOriginal: true,
   },
   {
-    title: 'Yak Study IV',
+    title: 'Taj Mahal, Ink Study',
     description:
-      'Ink and patience — every hair of the yak’s hanging fur is built up stroke by stroke, a meditation on detail in pure black and white.',
-    imageUrl: IMAGE_URL,
+      'The Taj drawn in patient black linework — dome, minarets and cypress avenue — a study of symmetry rather than a postcard.',
+    imageUrl: img(4),
+    category: 'Black & White',
+    price: 480,
+    dimensions: '55 × 40 cm',
+    medium: 'Pen & Ink',
+    isOriginal: true,
+  },
+  {
+    title: 'Camp Under Storm Light',
+    description:
+      'A watercolour from the road: two tents pitched in wet grass, a yellow one catching the last light while the storm gathers over the ridge.',
+    imageUrl: img(5),
+    category: 'Colour',
+    price: 410,
+    originalPrice: 480,
+    discount: 15,
+    dimensions: '40 × 55 cm',
+    medium: 'Watercolour & Ink',
+    isOriginal: true,
+  },
+  {
+    title: 'Village at the Foot of the Cliff',
+    description:
+      'Flat white houses tucked beneath a wall of rock, with the sky given over almost entirely to black — the moment before a storm swallows the light.',
+    imageUrl: img(6),
+    category: 'Black & White',
+    price: 560,
+    dimensions: '40 × 55 cm',
+    medium: 'Pen & Ink',
+    isOriginal: true,
+    isFeatured: true,
+  },
+  {
+    title: 'The Bird Keeper',
+    description:
+      'A figure in a painted bird mask and a red block-print jacket, set against a field of yellow — the folk costume of the high villages, drawn as a portrait.',
+    imageUrl: img(7),
+    category: 'Colour',
+    price: 690,
+    dimensions: '40 × 55 cm',
+    medium: 'Ink & Gouache',
+    isOriginal: true,
+  },
+  {
+    title: 'Trekkers in the Canyon',
+    description:
+      'A wide canyon rendered in layered colour and hard outlines — a footpath, three walkers, a turquoise stream, and cliffs stacked like cut paper.',
+    imageUrl: img(8),
+    category: 'Colour',
+    price: 780,
+    dimensions: '55 × 40 cm',
+    medium: 'Ink & Watercolour',
+    isOriginal: true,
+  },
+  {
+    title: 'Fields Below the Pass',
+    description:
+      'A village of flat-roofed houses at dusk, the mountain behind turning blue and violet while the barley fields keep the last of the daylight.',
+    imageUrl: img(9),
+    category: 'Colour',
+    price: 820,
+    dimensions: '55 × 40 cm',
+    medium: 'Gouache',
+    isOriginal: true,
+  },
+  {
+    title: 'Camp in the Meadow',
+    description:
+      'Tents pitched in a green meadow with a grazing horse and a whitewashed house on the ridge — a quiet, sunlit day between two stages of a trek.',
+    imageUrl: img(10),
+    category: 'Colour',
+    price: 640,
+    dimensions: '55 × 40 cm',
+    medium: 'Gouache',
+    isOriginal: false,
+  },
+  {
+    title: 'Monastery in the Cliff',
+    description:
+      'The cliffside monastery, its cells stacked into the rock face — drawn in ink so the architecture and the stone read as one continuous structure.',
+    imageUrl: img(11),
+    category: 'Black & White',
+    price: 850,
+    dimensions: '40 × 55 cm',
+    medium: 'Pen & Ink',
+    isOriginal: true,
+    isFeatured: true,
+  },
+  {
+    title: 'Pines in the Snowlight',
+    description:
+      'A screen-print style landscape in coral, cream and black — pines, a folded snow ridge and two small figures crossing the slope.',
+    imageUrl: img(12),
+    category: 'Colour',
+    price: 520,
+    dimensions: '50 × 50 cm',
+    medium: 'Screen Print',
+    isOriginal: false,
+  },
+  {
+    title: 'The Old Lane',
+    description:
+      'A stone-paved lane between old houses, trees and sky pushed to solid black so the only light left is the path itself.',
+    imageUrl: img(13),
     category: 'Black & White',
     price: 540,
-    dimensions: '50 × 50 cm',
+    dimensions: '40 × 55 cm',
     medium: 'Pen & Ink',
     isOriginal: true,
   },
   {
-    title: 'Yak Study V',
+    title: 'Under the Beams',
     description:
-      'The yak, seen head-on, with its distinctive hump and heavy winter coat — drawn in stark monochrome with a hand-inked signature at the corner.',
-    imageUrl: IMAGE_URL,
-    category: 'Black & White',
-    price: 390,
-    dimensions: '50 × 50 cm',
-    medium: 'Pen & Ink',
-    isOriginal: false,
-  },
-  {
-    title: 'Yak Study VI',
-    description:
-      'A study in shadow and light — the yak emerging from a dark ground through layered cross-hatching, ink on paper, signed by the artist.',
-    imageUrl: IMAGE_URL,
+      'A close study of a timber roof from below — beams, rafters and thatch worked in dense line until the joinery becomes its own geometry.',
+    imageUrl: img(14),
     category: 'Black & White',
     price: 460,
-    dimensions: '50 × 50 cm',
-    medium: 'Pen & Ink',
-    isOriginal: true,
-    isFeatured: true,
-  },
-  {
-    title: 'Yak Study VII',
-    description:
-      'An homage to the mountains — the yak in black ink, its shaggy silhouette built from fine parallel lines that give the fur its weight.',
-    imageUrl: IMAGE_URL,
-    category: 'Black & White',
-    price: 350,
-    originalPrice: 412,
-    discount: 15,
-    dimensions: '50 × 50 cm',
+    dimensions: '40 × 55 cm',
     medium: 'Pen & Ink',
     isOriginal: true,
   },
   {
-    title: 'Yak Study VIII',
+    title: 'Ridge and Forest',
     description:
-      'Crisp contours and stark silhouettes — the yak drawn with economy and precision, proving how much drama black ink on white paper can hold.',
-    imageUrl: IMAGE_URL,
+      'A forested ridge seen from above, with a village at its foot — thousands of strokes of ink building pine, rock and shadow across a wide sheet.',
+    imageUrl: img(15),
     category: 'Black & White',
-    price: 380,
-    dimensions: '50 × 50 cm',
+    price: 700,
+    dimensions: '55 × 40 cm',
     medium: 'Pen & Ink',
-    isOriginal: false,
+    isOriginal: true,
   },
   {
-    title: 'Yak Study IX',
+    title: 'House Under a Red Sky',
     description:
-      'A patient pen-and-ink rendering of the yak — stippling and cross-hatching turn a single subject into a rich study of light, fur, and character.',
-    imageUrl: IMAGE_URL,
-    category: 'Black & White',
-    price: 310,
-    dimensions: '50 × 50 cm',
-    medium: 'Pen & Ink',
-    isOriginal: false,
+      'A Tibetan farmhouse in flat colour against a crimson sky — ochre walls, red window frames and a wall of stacked stone in the foreground.',
+    imageUrl: img(16),
+    category: 'Colour',
+    price: 600,
+    dimensions: '55 × 40 cm',
+    medium: 'Gouache',
+    isOriginal: true,
   },
 ];
 
@@ -198,7 +276,14 @@ async function seed() {
   process.exit(0);
 }
 
-seed().catch((err) => {
-  console.error('❌ Seed failed:', err);
-  process.exit(1);
-});
+// Run only when executed directly (`node seed.js`), so the catalogue can be
+// imported elsewhere without reseeding the database.
+const isDirectRun =
+  process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url;
+
+if (isDirectRun) {
+  seed().catch((err) => {
+    console.error('❌ Seed failed:', err);
+    process.exit(1);
+  });
+}

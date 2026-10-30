@@ -1,70 +1,94 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import PushpinTearFooter from './PushpinTearFooter';
 
-export function Footer({ siteName, tagline }) {
+const EMAIL = 'artist@artbylopsang.com';
+
+/**
+ * Site footer: the pushpin tear footer, branded for ARTBYLOPSANG.
+ * Section links (#gallery, #about, #contact) scroll on the home page and
+ * route back to it from other pages; internal paths go through the router.
+ */
+export function Footer({ siteName = 'ARTBYLOPSANG', tagline }) {
   const navigate = useNavigate();
   const { openTracking } = useCart();
 
-  const scrollTo = (id) => (e) => {
-    e.preventDefault();
-    if (window.location.pathname !== '/') {
-      navigate('/', { state: { scrollTo: id } });
+  const onLinkClick = (e) => {
+    const a = e.target.closest('a[href]');
+    if (!a) return;
+    const href = a.getAttribute('href');
+
+    if (href === '#track') {
+      e.preventDefault();
+      openTracking();
       return;
     }
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    if (href && href.startsWith('#')) {
+      e.preventDefault();
+      const id = href.slice(1);
+      if (window.location.pathname !== '/') {
+        navigate('/', { state: { scrollTo: id } });
+        return;
+      }
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    if (href && href.startsWith('/')) {
+      e.preventDefault();
+      navigate(href);
+    }
   };
 
   return (
-    <footer className="py-12 lg:py-16 border-t border-border">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          <div className="sm:col-span-2 lg:col-span-1">
-            <h3 className="font-medium mb-4 text-foreground">{siteName}</h3>
-            <p className="text-muted-foreground text-sm max-w-md">{tagline}</p>
-          </div>
-          <div>
-            <h4 className="font-medium mb-4 text-foreground">Quick Links</h4>
-            <div className="space-y-2 text-sm">
-              <a href="#gallery" onClick={scrollTo('gallery')} className="block text-muted-foreground hover:text-foreground transition-colors">
-                Gallery
-              </a>
-              <a href="#about" onClick={scrollTo('about')} className="block text-muted-foreground hover:text-foreground transition-colors">
-                About
-              </a>
-              <a href="#contact" onClick={scrollTo('contact')} className="block text-muted-foreground hover:text-foreground transition-colors">
-                Contact
-              </a>
-              <button
-                type="button"
-                onClick={openTracking}
-                className="block text-muted-foreground hover:text-foreground transition-colors text-left"
-              >
-                Track Order
-              </button>
-              <Link to="/account" className="block text-muted-foreground hover:text-foreground transition-colors">
-                My Account
-              </Link>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-4 text-foreground">Policies</h4>
-            <div className="space-y-2 text-sm">
-              <a href="#" className="block text-muted-foreground hover:text-foreground transition-colors">
-                Shipping & Returns
-              </a>
-              <a href="#" className="block text-muted-foreground hover:text-foreground transition-colors">
-                Privacy Policy
-              </a>
-              <a href="#" className="block text-muted-foreground hover:text-foreground transition-colors">
-                Terms of Service
-              </a>
-            </div>
-          </div>
-        </div>
-        <div className="mt-8 pt-8 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} {siteName}. All rights reserved.</p>
-        </div>
-      </div>
-    </footer>
+    <div onClickCapture={onLinkClick}>
+      <PushpinTearFooter
+        brand="lopsang."
+        name={siteName}
+        logoHref="/"
+        sheet="#0a0a0a"
+        paper="#f4f1ea"
+        sheetInk="#ffffff"
+        paperInk="#0a0a0a"
+        seed={12}
+        email={EMAIL}
+        newsletter={{ label: 'new works, once a month', placeholder: 'your@email' }}
+        status={{ label: 'commissions open' }}
+        mark="ed. 2026"
+        timeZone="Asia/Kathmandu"
+        timeLabel="NPT"
+        socials={[
+          { icon: 'ig', label: 'Instagram', href: '#' },
+          { icon: 'x', label: 'X', href: '#' },
+        ]}
+        columns={[
+          {
+            title: 'index',
+            links: [
+              { label: 'Gallery', href: '#gallery' },
+              { label: 'About', href: '#about' },
+              { label: 'Contact', href: '#contact' },
+            ],
+            cta: { label: 'browse.', href: '#gallery' },
+          },
+          {
+            title: 'shop',
+            links: [
+              { label: 'Track Order', href: '#track' },
+              { label: 'Wishlist', href: '/wishlist' },
+              { label: 'My Account', href: '/account' },
+            ],
+            cta: { label: 'talk.', href: 'mailto:' + EMAIL },
+          },
+        ]}
+        sideLinks={[
+          { icon: 'globe', label: 'shipping', href: '#' },
+          { icon: 'doc', label: 'terms', href: '#' },
+        ]}
+        chat={{ label: 'say hi' }}
+        copyright={'© ' + new Date().getFullYear() + ' ' + siteName}
+        credit={tagline ? 'original art & prints' : undefined}
+        handle={{ label: '@artbylopsang', href: '#' }}
+      />
+    </div>
   );
 }

@@ -8,13 +8,52 @@ import {
   createToken,
   createResetToken,
 } from '../utils/auth.js';
+import { sendEmail } from '../utils/mailer.js';
+import { welcomeEmail } from '../emails/templates.js';
 
 const router = express.Router();
 
-// Registration is closed: guests browse and order without an account, and
-// sign-in is reserved for the admin (seeded by backend/seed.js).
+// Buyer accounts: anyone can open one. The admin account is seeded separately
+// (backend/seed.js) and is the only account that can reach /api/admin.
 router.post('/register', async (req, res) => {
-  res.status(403).json({ message: 'Registration is closed — guests can browse and order directly. Only the admin can sign in.' });
+  try {
+    const name = String(req.body.name || '').trim();
+    const email = String(req.body.email || '').toLowerCase().trim();
+    const password = String(req.body.password || '');
+
+    if (name.length < 2) return res.status(400).json({ message: 'Please enter your name' });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: 'Please enter a valid email address' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+    const existing = await User.findOne({ email });
+    if (existing) {
+      return res.status(409).json({ message: 'An account with this email already exists' });
+    }
+
+    const { salt, hash } = hashPassword(password);
+    const user = await User.create({ name, email, salt, hash, isAdmin: false });
+
+    await Notification.create({
+      user: user._id,
+      title: 'Welcome to ARTBYLOPSANG',
+      message: 'Your account is ready — your orders, tracking and reviews live here.',
+      type: 'account',
+      link: '/account?tab=orders',
+    });
+
+    // Fire-and-forget: a slow or missing email service must never block sign-up.
+    const mail = welcomeEmail(user);
+    sendEmail({ to: user.email, ...mail }).catch((err) =>
+      console.error('[email] welcome failed', err.message)
+    );
+
+    res.status(201).json({ token: createToken(user._id), user: user.toSafe() });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
 });
 
 router.post('/login', async (req, res) => {
@@ -24,8 +63,8 @@ router.post('/login', async (req, res) => {
     if (!user || !verifyPassword(String(password || ''), user.salt, user.hash)) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
-    if (!user.isAdmin) {
-      return res.status(403).json({ message: 'Only the admin can sign in. Guests can browse and order directly without an account.' });
+    if (user.isActive === false) {
+      return res.status(403).json({ message: 'This account has been deactivated. Contact the studio if you think this is a mistake.' });
     }
     res.json({ token: createToken(user._id), user: user.toSafe() });
   } catch (error) {

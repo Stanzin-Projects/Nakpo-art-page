@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Heart,
@@ -7,6 +7,8 @@ import {
   Star,
   ChevronLeft,
   ArrowRight,
+  Ruler,
+  Frame,
 } from 'lucide-react';
 import { getArtworkById, getArtworks } from '../api/artwork.api';
 import { getReviews, createReview } from '../api/review.api';
@@ -15,6 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { ImageWithFallback } from '../components/ImageWithFallback';
 import { StarRating } from '../components/StarRating';
+import { flyToCart } from '../utils/flyToCart';
 
 const featuredStaticArtworks = [
   {
@@ -51,7 +54,6 @@ const featuredStaticArtworks = [
   },
 ];
 
-// Create a lookup for ALL featured artwork IDs (1-10) so any click works
 const allFeaturedArtworks = [];
 for (let i = 1; i <= 10; i++) {
   allFeaturedArtworks.push({
@@ -137,6 +139,46 @@ const BACKGROUND_OPTIONS = [
   { name: 'Hunter Green', color: '#355e3b', value: 'hunter-green' },
 ];
 
+// ── Dimension presets (width × height in inches) ──
+const DIMENSION_PRESETS = [
+  { label: '8 × 10"', width: 8, height: 10, area: 80 },
+  { label: '12 × 16"', width: 12, height: 16, area: 192 },
+  { label: '16 × 20"', width: 16, height: 20, area: 320 },
+  { label: '20 × 24"', width: 20, height: 24, area: 480 },
+  { label: '24 × 36"', width: 24, height: 36, area: 864 },
+  { label: '30 × 40"', width: 30, height: 40, area: 1200 },
+];
+
+// Base reference area for price scaling (12 × 16 = 192 sq inches)
+const BASE_AREA = 192;
+const PREVIEW_SCALE_BASE = 30;
+
+// ── Frame color options ──
+const FRAME_COLORS = [
+  { name: 'No Frame', color: 'transparent', hex: 'transparent', premium: 0, borderClass: 'border-dashed border-2 border-muted-foreground/40' },
+  { name: 'Matte Black', color: '#1a1a1a', hex: '#1a1a1a', premium: 800, borderClass: '' },
+  { name: 'Glossy Black', color: '#111111', hex: '#111111', premium: 900, borderClass: '' },
+  { name: 'White', color: '#f5f5f5', hex: '#f5f5f5', premium: 800, borderClass: '' },
+  { name: 'Natural Wood', color: '#c4a87c', hex: '#c4a87c', premium: 1200, borderClass: '' },
+  { name: 'Dark Walnut', color: '#5c4033', hex: '#5c4033', premium: 1400, borderClass: '' },
+  { name: 'Oak', color: '#b08d57', hex: '#b08d57', premium: 1300, borderClass: '' },
+  { name: 'Gold', color: '#c5a54e', hex: '#c5a54e', premium: 2000, borderClass: '' },
+  { name: 'Silver', color: '#b0b0b0', hex: '#b0b0b0', premium: 1800, borderClass: '' },
+  { name: 'Champagne', color: '#d4c5a0', hex: '#d4c5a0', premium: 1500, borderClass: '' },
+  { name: 'Bronze', color: '#8c7853', hex: '#8c7853', premium: 1600, borderClass: '' },
+  { name: 'Rose Gold', color: '#b76e79', hex: '#b76e79', premium: 1900, borderClass: '' },
+];
+
+/**
+ * Calculate dynamic price based on base price, selected area, and frame premium.
+ * Larger dimensions → proportionally higher cost.
+ */
+function calculatePrice(basePrice, selectedArea, framePremium = 0) {
+  const scaleFactor = selectedArea / BASE_AREA;
+  const scaledPrice = Math.round(basePrice * scaleFactor);
+  return scaledPrice + framePremium;
+}
+
 export default function ProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -151,6 +193,13 @@ export default function ProductPage() {
   const [notFound, setNotFound] = useState(false);
   const [wallImage, setWallImage] = useState(null);
   const [artPosition, setArtPosition] = useState({ x: 50, y: 50, scale: 30 });
+
+  // ── New: dimension & frame selection ──
+  const [selectedDimension, setSelectedDimension] = useState(1); // index into DIMENSION_PRESETS (default: 12×16)
+  const [customWidth, setCustomWidth] = useState('');
+  const [customHeight, setCustomHeight] = useState('');
+  const [useCustomDimension, setUseCustomDimension] = useState(false);
+  const [selectedFrame, setSelectedFrame] = useState(0); // index into FRAME_COLORS
 
   const handleWallUpload = (e) => {
     const file = e.target.files?.[0];
@@ -187,7 +236,6 @@ export default function ProductPage() {
     setArtwork(null);
     setNotFound(false);
 
-    // Handle static featured artworks (caravan & yak)
     if (id.startsWith('featured-')) {
       const staticArt = allFeaturedArtworks.find((a) => a.id === id);
       if (staticArt) {
@@ -213,13 +261,63 @@ export default function ProductPage() {
   const bgColor =
     BACKGROUND_OPTIONS.find((o) => o.value === selectedBackground)?.color || '#ffffff';
 
+  // ── Compute selected area & dynamic price ──
+  const selectedArea = useMemo(() => {
+    if (useCustomDimension) {
+      const w = parseFloat(customWidth) || 0;
+      const h = parseFloat(customHeight) || 0;
+      return w * h;
+    }
+    return DIMENSION_PRESETS[selectedDimension]?.area || BASE_AREA;
+  }, [useCustomDimension, customWidth, customHeight, selectedDimension]);
+
+  const dynamicPrice = useMemo(() => {
+    if (!artwork) return 0;
+
+    const framePremium = FRAME_COLORS[selectedFrame]?.premium || 0;
+    const basePrice = calculatePrice(artwork.price ?? 0, selectedArea || BASE_AREA, framePremium);
+
+    if (!wallImage) return basePrice;
+
+    const previewScaleFactor = artPosition.scale / PREVIEW_SCALE_BASE;
+    return Math.round(basePrice * previewScaleFactor);
+  }, [artwork, selectedArea, selectedFrame, wallImage, artPosition.scale]);
+
+  const currentDimensionLabel = useMemo(() => {
+    if (useCustomDimension) {
+      const w = parseFloat(customWidth) || 0;
+      const h = parseFloat(customHeight) || 0;
+      if (w > 0 && h > 0) return `${w} × ${h}"`;
+      return 'Custom';
+    }
+    return DIMENSION_PRESETS[selectedDimension]?.label || '—';
+  }, [useCustomDimension, customWidth, customHeight, selectedDimension]);
+
+  const currentFrame = FRAME_COLORS[selectedFrame];
+
   const handleAddToCart = () => {
-    addToCart(artwork);
+    flyToCart({
+      from: document.querySelector('[data-cart-source]'),
+      image: artwork.image || artwork.imageUrl,
+    });
+    addToCart({
+      ...artwork,
+      price: dynamicPrice,
+      selectedDimension: currentDimensionLabel,
+      selectedFrame: currentFrame.name,
+      selectedFrameColor: currentFrame.hex,
+    });
     push('Added to cart');
   };
 
   const handleBuyNow = () => {
-    addToCart(artwork);
+    addToCart({
+      ...artwork,
+      price: dynamicPrice,
+      selectedDimension: currentDimensionLabel,
+      selectedFrame: currentFrame.name,
+      selectedFrameColor: currentFrame.hex,
+    });
     openCheckout();
   };
 
@@ -334,8 +432,22 @@ export default function ProductPage() {
             </div>
           )}
           {!wallImage && (
-            <div className="w-full aspect-square flex items-center justify-center p-8 rounded-lg transition-colors border border-border" style={{ backgroundColor: bgColor }}>
-              <ImageWithFallback src={imageSrc} alt={artwork.title} className="max-w-full max-h-full object-contain" />
+            <div data-cart-source className="w-full aspect-square flex items-center justify-center p-8 rounded-lg transition-colors border border-border" style={{ backgroundColor: bgColor }}>
+              {/* If a frame is selected, wrap the image in a visual frame */}
+              {currentFrame.name !== 'No Frame' ? (
+                <div
+                  className="p-4 rounded-md max-w-full max-h-full flex items-center justify-center"
+                  style={{
+                    backgroundColor: currentFrame.hex,
+                    border: `8px solid ${currentFrame.hex}`,
+                    boxShadow: 'inset 0 0 10px rgba(0,0,0,0.15)',
+                  }}
+                >
+                  <ImageWithFallback src={imageSrc} alt={artwork.title} className="max-w-full max-h-full object-contain" />
+                </div>
+              ) : (
+                <ImageWithFallback src={imageSrc} alt={artwork.title} className="max-w-full max-h-full object-contain" />
+              )}
             </div>
           )}
         </div>
@@ -345,7 +457,6 @@ export default function ProductPage() {
           <div>
             <div className="flex items-center justify-between">
               <h1 className="text-3xl font-medium text-foreground">{artwork.title}</h1>
-              {/* Wishlist is a shopping action — hidden for the admin */}
               {!user?.isAdmin && (
                 <button
                   type="button"
@@ -375,14 +486,132 @@ export default function ProductPage() {
             </div>
           </div>
 
+          {/* ── Dynamic Price ── */}
           <div>
-            <p className="text-3xl font-medium text-foreground">₹{artwork.price ?? 0}</p>
-            {artwork.originalPrice ? (
-              <p className="text-muted-foreground line-through">₹{artwork.originalPrice}</p>
-            ) : null}
+            <div className="flex items-baseline gap-3">
+              <p className="text-3xl font-medium text-foreground">₹{dynamicPrice.toLocaleString('en-IN')}</p>
+              {dynamicPrice !== (artwork.price ?? 0) && (
+                <p className="text-muted-foreground line-through">₹{(artwork.price ?? 0).toLocaleString('en-IN')}</p>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Base price: ₹{(artwork.price ?? 0).toLocaleString('en-IN')} · Size: {currentDimensionLabel} · Frame: {currentFrame.name}
+              {currentFrame.premium > 0 && ` (+₹${currentFrame.premium.toLocaleString('en-IN')})`}
+              {wallImage && ` · Preview scale: ${artPosition.scale}%`}
+            </p>
           </div>
 
-          {/* Add to cart / Buy Now are shopping actions — hidden for the admin */}
+          {/* ── Dimension Selector ── */}
+          <div className="border border-border rounded-lg p-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <Ruler className="h-4 w-4 text-muted-foreground" />
+              <h3 className="font-medium text-foreground">Select Size</h3>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {DIMENSION_PRESETS.map((dim, i) => {
+                const frameP = FRAME_COLORS[selectedFrame]?.premium || 0;
+                const presetPrice = calculatePrice(artwork.price ?? 0, dim.area, frameP);
+                const isSelected = !useCustomDimension && selectedDimension === i;
+                return (
+                  <button
+                    key={dim.label}
+                    type="button"
+                    onClick={() => {
+                      setUseCustomDimension(false);
+                      setSelectedDimension(i);
+                    }}
+                    className={`rounded-lg border-2 p-3 text-left transition-all ${
+                      isSelected
+                        ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                        : 'border-border hover:border-primary/40'
+                    }`}
+                  >
+                    <span className="block text-sm font-medium text-foreground">{dim.label}</span>
+                    <span className="block text-xs text-muted-foreground mt-0.5">₹{presetPrice.toLocaleString('en-IN')}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom dimension toggle */}
+            <div className="border-t border-border pt-3">
+              <button
+                type="button"
+                onClick={() => setUseCustomDimension(!useCustomDimension)}
+                className={`text-sm font-medium transition-colors ${useCustomDimension ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                {useCustomDimension ? '✓ Using custom size' : '+ Enter custom size'}
+              </button>
+              {useCustomDimension && (
+                <div className="flex items-center gap-3 mt-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max="120"
+                      placeholder="W"
+                      value={customWidth}
+                      onChange={(e) => setCustomWidth(e.target.value)}
+                      className="w-20 h-10 px-2 rounded-md border border-border bg-background text-sm text-center"
+                    />
+                    <span className="text-muted-foreground">×</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="120"
+                      placeholder="H"
+                      value={customHeight}
+                      onChange={(e) => setCustomHeight(e.target.value)}
+                      className="w-20 h-10 px-2 rounded-md border border-border bg-background text-sm text-center"
+                    />
+                    <span className="text-xs text-muted-foreground">inches</span>
+                  </div>
+                  {selectedArea > 0 && (
+                    <span className="text-sm text-foreground font-medium">₹{calculatePrice(artwork.price ?? 0, selectedArea, FRAME_COLORS[selectedFrame]?.premium || 0).toLocaleString('en-IN')}</span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── Frame Color Selector ── */}
+          <div className="border border-border rounded-lg p-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <Frame className="h-4 w-4 text-muted-foreground" />
+              <h3 className="font-medium text-foreground">Select Frame</h3>
+            </div>
+
+            <div className="grid grid-cols-4 gap-2">
+              {FRAME_COLORS.map((frame, i) => {
+                const isSelected = selectedFrame === i;
+                return (
+                  <button
+                    key={frame.name}
+                    type="button"
+                    onClick={() => setSelectedFrame(i)}
+                    className={`rounded-lg border-2 p-2 text-center transition-all flex flex-col items-center gap-1.5 ${
+                      isSelected
+                        ? 'border-primary ring-1 ring-primary/20'
+                        : 'border-border hover:border-primary/40'
+                    }`}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-full ${frame.borderClass}`}
+                      style={frame.hex !== 'transparent' ? { backgroundColor: frame.hex } : {}}
+                      title={frame.name}
+                    />
+                    <span className="text-xs text-foreground leading-tight">{frame.name}</span>
+                    {frame.premium > 0 && (
+                      <span className="text-[10px] text-muted-foreground">+₹{frame.premium.toLocaleString('en-IN')}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Add to cart / Buy Now */}
           {!user?.isAdmin && (
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -402,6 +631,29 @@ export default function ProductPage() {
             </div>
           )}
 
+          {/* Summary of selections */}
+          <div className="bg-muted/30 p-4 rounded-lg space-y-2">
+            <h4 className="font-medium text-sm text-foreground">Your Selection</h4>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <span className="text-muted-foreground">Size</span>
+                <p className="text-foreground">{currentDimensionLabel}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Frame</span>
+                <p className="text-foreground">{currentFrame.name}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Total Price</span>
+                <p className="text-foreground font-medium">₹{dynamicPrice.toLocaleString('en-IN')}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Area</span>
+                <p className="text-foreground">{selectedArea > 0 ? `${selectedArea} sq in` : '—'}</p>
+              </div>
+            </div>
+          </div>
+
           <div className="border-t border-border pt-4">
             <h3 className="font-medium mb-3 text-foreground">Description</h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
@@ -413,8 +665,8 @@ export default function ProductPage() {
             <h3 className="font-medium mb-3 text-foreground">Specifications</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-muted-foreground">Dimensions</p>
-                <p className="text-foreground">{artwork.dimensions || '—'}</p>
+                <p className="text-muted-foreground">Selected Size</p>
+                <p className="text-foreground">{currentDimensionLabel}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Medium</p>
@@ -425,8 +677,8 @@ export default function ProductPage() {
                 <p className="text-foreground">{artwork.isOriginal ? 'Original Artwork' : 'Limited Edition Print'}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">Category</p>
-                <p className="text-foreground">{artwork.category || '—'}</p>
+                <p className="text-muted-foreground">Frame</p>
+                <p className="text-foreground">{currentFrame.name}</p>
               </div>
             </div>
           </div>

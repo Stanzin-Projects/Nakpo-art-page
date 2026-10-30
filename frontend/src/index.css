@@ -95,6 +95,40 @@
   }
 }
 
+/* ---- Hero: one artwork at a time — fade the current out, swap, fade the next in ---- */
+@keyframes hero-slide-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes hero-slide-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.hero-slide-in {
+  animation: hero-slide-in 0.7s ease both;
+}
+
+.hero-slide-out {
+  animation: hero-slide-out 0.45s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-slide-in,
+  .hero-slide-out {
+    animation: none;
+  }
+}
+
 /* ---- Image protection: stop drag, long-press save and selection of images ---- */
 img {
   -webkit-user-drag: none;

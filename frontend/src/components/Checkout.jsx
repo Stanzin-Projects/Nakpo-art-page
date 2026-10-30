@@ -92,6 +92,9 @@ export function Checkout({ isOpen, onClose, onOrderComplete }) {
           image: item.image,
           price: item.price,
           quantity: item.quantity || 1,
+          selectedDimension: item.selectedDimension || '',
+          selectedFrame: item.selectedFrame || 'No Frame',
+          selectedFrameColor: item.selectedFrameColor || 'transparent',
         })),
         total: Math.round(total * 100) / 100,
         subtotal: Math.round(subtotal * 100) / 100,
@@ -167,6 +170,14 @@ export function Checkout({ isOpen, onClose, onOrderComplete }) {
                 <div className="flex-1">
                   <h4 className="font-medium text-sm">{item.title}</h4>
                   <p className="text-muted-foreground text-sm">Qty: {item.quantity || 1}</p>
+                  {item.selectedDimension && (
+                    <p className="text-xs text-muted-foreground">
+                      Size: {item.selectedDimension}{' '}
+                      {item.selectedFrame && item.selectedFrame !== 'No Frame' && (
+                        <>· Frame: {item.selectedFrame}</>
+                      )}
+                    </p>
+                  )}
                   <p className="font-medium text-sm">₹{((item.price || 0) * (item.quantity || 1)).toFixed(2)}</p>
                 </div>
               </div>

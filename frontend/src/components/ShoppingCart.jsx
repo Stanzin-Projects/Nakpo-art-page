@@ -58,6 +58,14 @@ export function ShoppingCart({ isOpen, onClose }) {
                         <div>
                           <h4 className="font-medium truncate text-foreground">{item.title}</h4>
                           <p className="text-sm text-muted-foreground">{item.medium}</p>
+                          {item.selectedDimension && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Size: {item.selectedDimension}{' '}
+                              {item.selectedFrame && item.selectedFrame !== 'No Frame' && (
+                                <>· Frame: {item.selectedFrame}</>
+                              )}
+                            </p>
+                          )}
                         </div>
                         <button
                           type="button"

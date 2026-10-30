@@ -11,7 +11,7 @@ export const DEFAULT_CONTENT = {
     description:
       'Explore our curated collection of original paintings, limited edition prints, and commissioned artworks.',
     ctaText: 'Explore Gallery',
-    backgroundImage: 'https://images.cdn-files-a.com/uploads/7871374/2000_644d45ca0954b.png',
+    backgroundImage: '/artworks/art1.webp',
   },
   gallery: {
     title: 'Art Gallery',
@@ -23,7 +23,8 @@ export const DEFAULT_CONTENT = {
     subtitle: 'Creating meaningful connections through art',
     description:
       'With over a decade of experience in contemporary art, I create pieces that bridge the gap between traditional techniques and modern expression.',
-    image: 'https://images.cdn-files-a.com/uploads/7871374/2000_644a7ebe3625f_filter_645ca89d0848f.png',
+    image:
+      'https://images.cdn-files-a.com/uploads/7871374/2000_644a7ebe3625f_filter_645ca89d0848f.png',
     stats: [
       { value: '100+', label: 'Artworks Created' },
       { value: '50+', label: 'Happy Collectors' },
@@ -56,6 +57,9 @@ router.get('/', async (req, res) => {
 // Editing the site sections is admin-only.
 router.put('/', requireAdmin, async (req, res) => {
   try {
+    // `sale` is intentionally excluded: it is only written by the apply/clear
+    // endpoints, so the banner can never advertise a sale whose prices were
+    // not actually applied.
     const allowed = ['hero', 'gallery', 'about', 'contact'];
     const patch = {};
     for (const key of allowed) {

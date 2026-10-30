@@ -10,7 +10,7 @@ import { requireAuth, optionalAuth } from '../middleware/auth.js';
 const router = express.Router();
 
 router.post('/', optionalAuth, createOrder);
-router.get('/', getOrdersByQuery);
+router.get('/', optionalAuth, getOrdersByQuery);
 router.get('/mine', requireAuth, getMyOrders);
 router.post('/:id/return', requireAuth, requestReturn);
 

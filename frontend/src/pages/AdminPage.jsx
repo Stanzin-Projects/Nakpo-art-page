@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Plus,
@@ -10,12 +10,28 @@ import {
   Loader2,
   LayoutGrid,
   PanelsTopLeft,
+  BarChart3,
+  Users,
+  UserCog,
+  Bell,
+  BellOff,
+  BellRing,
 } from 'lucide-react';
 import { getArtworks, createArtwork, updateArtwork, deleteArtwork } from '../api/artwork.api';
 import { getSiteContent, updateSiteContent } from '../api/siteContent.api';
+import { applyStoreSale, clearStoreSale } from '../api/admin.api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { ImageWithFallback } from '../components/ImageWithFallback';
+import { AdminOrders } from '../components/admin/AdminOrders';
+import { AdminCustomers } from '../components/admin/AdminCustomers';
+import { AdminAccounts } from '../components/admin/AdminAccounts';
+import {
+  playOrderChime,
+  notificationPermission,
+  requestNotificationPermission,
+  showOrderNotification,
+} from '../utils/orderAlerts';
 
 const EMPTY_FORM = {
   title: '',
@@ -45,6 +61,19 @@ export default function AdminPage() {
 
   const [tab, setTab] = useState('artworks');
 
+  // ---- live order alerts ----
+  const [live, setLive] = useState(false);
+  const [newOrders, setNewOrders] = useState(0);
+  const [ordersVersion, setOrdersVersion] = useState(0);
+  const [soundOn, setSoundOn] = useState(() => localStorage.getItem('admin_order_sound') !== 'off');
+  const [permission, setPermission] = useState(notificationPermission());
+  const soundRef = useRef(soundOn);
+
+  useEffect(() => {
+    soundRef.current = soundOn;
+    localStorage.setItem('admin_order_sound', soundOn ? 'on' : 'off');
+  }, [soundOn]);
+
   // ---- artworks ----
   const [artworks, setArtworks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -59,6 +88,7 @@ export default function AdminPage() {
   const [content, setContent] = useState(null);
   const [contentLoading, setContentLoading] = useState(true);
   const [savingContent, setSavingContent] = useState(false);
+  const [saleBusy, setSaleBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -87,6 +117,42 @@ export default function AdminPage() {
     load();
     loadContent();
   }, [user, load, loadContent]);
+
+  // Server-Sent Events: the studio hears about every checkout instantly.
+  useEffect(() => {
+    if (!user?.isAdmin) return undefined;
+    const token = localStorage.getItem('abt_token');
+    if (!token) return undefined;
+
+    const source = new EventSource(`/api/admin/events?token=${encodeURIComponent(token)}`);
+    source.addEventListener('ready', () => setLive(true));
+    source.addEventListener('order', (event) => {
+      let data = {};
+      try {
+        data = JSON.parse(event.data);
+      } catch {
+        return;
+      }
+      setNewOrders((n) => n + 1);
+      setOrdersVersion((v) => v + 1);
+      if (soundRef.current) playOrderChime();
+      showOrderNotification(data);
+      push(
+        `New order ${data.orderNumber} — ₹${Number(data.total || 0).toLocaleString('en-IN')} from ${data.customer}`,
+        'success'
+      );
+    });
+    source.onerror = () => setLive(false);
+
+    return () => source.close();
+  }, [user, push]);
+
+  const enableDesktopAlerts = async () => {
+    const result = await requestNotificationPermission();
+    setPermission(result);
+    if (result === 'granted') push('Desktop alerts enabled', 'success');
+    else if (result === 'denied') push('Notifications are blocked — allow them in your browser settings', 'error');
+  };
 
   // ---- artwork editor ----
   const openNew = () => {
@@ -213,6 +279,44 @@ export default function AdminPage() {
     }
   };
 
+  // ---- store-wide sale ----
+  const applySaleNow = async () => {
+    const percent = Number(content?.sale?.percent);
+    if (!percent || percent <= 0 || percent >= 100) {
+      push('Enter a sale percentage between 1 and 99', 'error');
+      return;
+    }
+    setSaleBusy(true);
+    try {
+      const res = await applyStoreSale({
+        percent,
+        label: content?.sale?.label || '',
+        endsAt: content?.sale?.endsAt || '',
+      });
+      setContent((c) => ({ ...c, sale: { ...(c?.sale || {}), active: true, percent } }));
+      await load();
+      push(`Sale live — ${res.data.updated} artwork${res.data.updated === 1 ? '' : 's'} now ${percent}% off`, 'success');
+    } catch (err) {
+      push(err.response?.data?.message || 'Could not apply the sale', 'error');
+    } finally {
+      setSaleBusy(false);
+    }
+  };
+
+  const endSaleNow = async () => {
+    setSaleBusy(true);
+    try {
+      const res = await clearStoreSale();
+      setContent((c) => ({ ...c, sale: { ...(c?.sale || {}), active: false, percent: 0 } }));
+      await load();
+      push(`Sale ended — ${res.data.restored} price${res.data.restored === 1 ? '' : 's'} restored`, 'success');
+    } catch (err) {
+      push(err.response?.data?.message || 'Could not end the sale', 'error');
+    } finally {
+      setSaleBusy(false);
+    }
+  };
+
   // ---- access guard ----
   if (!user) {
     return (
@@ -229,7 +333,9 @@ export default function AdminPage() {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center text-center px-4">
         <h1 className="text-2xl font-medium mb-2">Admin access required</h1>
-        <p className="text-muted-foreground">Only the admin can manage the site. Guests browse and order directly.</p>
+        <p className="text-muted-foreground">
+          Only the admin can see sales, customers and the gallery. Your buyer account can follow its own orders from the account page.
+        </p>
       </div>
     );
   }
@@ -242,21 +348,66 @@ export default function AdminPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-medium">Admin Panel</h1>
-          <p className="text-muted-foreground text-sm mt-1">Manage the gallery and every section of the site.</p>
+          <p className="text-muted-foreground text-sm mt-1 flex items-center gap-2">
+            <span
+              className={`inline-block h-2 w-2 rounded-full ${live ? 'bg-green-500' : 'bg-muted-foreground/40'}`}
+              aria-hidden="true"
+            />
+            {live ? 'Live — new orders appear here instantly' : 'Connecting to live order alerts…'}
+          </p>
         </div>
-        {tab === 'artworks' && (
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={openNew}
-            className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium"
+            onClick={() => setSoundOn((v) => !v)}
+            aria-pressed={soundOn}
+            title={soundOn ? 'Mute the new-order chime' : 'Unmute the new-order chime'}
+            className={`inline-flex items-center gap-2 h-10 px-3 rounded-md border text-sm ${
+              soundOn ? 'border-border hover:bg-muted' : 'border-border text-muted-foreground hover:bg-muted'
+            }`}
           >
-            <Plus className="h-4 w-4" /> Add Artwork
+            {soundOn ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+            <span className="hidden sm:inline">{soundOn ? 'Sound on' : 'Muted'}</span>
           </button>
-        )}
+
+          {permission === 'granted' ? (
+            <span className="inline-flex items-center gap-2 h-10 px-3 rounded-md border border-border text-sm text-muted-foreground">
+              <BellRing className="h-4 w-4" />
+              <span className="hidden sm:inline">Desktop alerts on</span>
+            </span>
+          ) : permission === 'default' ? (
+            <button
+              type="button"
+              onClick={enableDesktopAlerts}
+              className="inline-flex items-center gap-2 h-10 px-3 rounded-md border border-border text-sm hover:bg-muted"
+            >
+              <BellRing className="h-4 w-4" />
+              <span className="hidden sm:inline">Enable desktop alerts</span>
+            </button>
+          ) : (
+            <span
+              className="inline-flex items-center gap-2 h-10 px-3 rounded-md border border-border text-sm text-muted-foreground"
+              title="Allow notifications for this site in your browser settings to enable desktop alerts"
+            >
+              <BellRing className="h-4 w-4" />
+              <span className="hidden sm:inline">{permission === 'denied' ? 'Alerts blocked' : 'Alerts unavailable'}</span>
+            </span>
+          )}
+
+          {tab === 'artworks' && (
+            <button
+              type="button"
+              onClick={openNew}
+              className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium"
+            >
+              <Plus className="h-4 w-4" /> Add Artwork
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-8 border-b border-border pb-4">
+      <div className="flex flex-wrap gap-2 mb-8 border-b border-border pb-4">
         <button
           type="button"
           onClick={() => setTab('artworks')}
@@ -265,6 +416,41 @@ export default function AdminPage() {
           }`}
         >
           <LayoutGrid className="h-4 w-4" /> Artworks
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setTab('orders');
+            setNewOrders(0);
+          }}
+          className={`inline-flex items-center gap-2 h-10 px-4 rounded-md text-sm font-medium ${
+            tab === 'orders' ? 'bg-primary text-primary-foreground' : 'border border-border hover:bg-muted'
+          }`}
+        >
+          <BarChart3 className="h-4 w-4" /> Orders &amp; Sales
+          {newOrders > 0 && (
+            <span className="ml-1 min-w-5 h-5 px-1.5 inline-flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium">
+              {newOrders}
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('customers')}
+          className={`inline-flex items-center gap-2 h-10 px-4 rounded-md text-sm font-medium ${
+            tab === 'customers' ? 'bg-primary text-primary-foreground' : 'border border-border hover:bg-muted'
+          }`}
+        >
+          <Users className="h-4 w-4" /> Customers
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('accounts')}
+          className={`inline-flex items-center gap-2 h-10 px-4 rounded-md text-sm font-medium ${
+            tab === 'accounts' ? 'bg-primary text-primary-foreground' : 'border border-border hover:bg-muted'
+          }`}
+        >
+          <UserCog className="h-4 w-4" /> Accounts
         </button>
         <button
           type="button"
@@ -458,6 +644,15 @@ export default function AdminPage() {
         </>
       )}
 
+      {/* ================= Orders & Sales tab ================= */}
+      {tab === 'orders' && <AdminOrders refreshKey={ordersVersion} />}
+
+      {/* ================= Customers tab ================= */}
+      {tab === 'customers' && <AdminCustomers />}
+
+      {/* ================= Accounts tab ================= */}
+      {tab === 'accounts' && <AdminAccounts />}
+
       {/* ================= Sections tab ================= */}
       {tab === 'sections' && (
         <div className="space-y-8">
@@ -508,6 +703,74 @@ export default function AdminPage() {
                       </div>
                     ))}
                   </div>
+                </div>
+              </SectionCard>
+
+              {/* Store-wide sale */}
+              <SectionCard title="Store-wide Sale">
+                <p className="text-sm text-muted-foreground">
+                  Run a campaign such as “Diwali Sale — 40% off”. Applying it discounts every
+                  artwork at once and shows the banner on the gallery; ending it restores the exact
+                  prices that were there before. Individual pieces can still be edited on the
+                  Artworks tab.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className={labelCls}>Sale name</label>
+                    <input
+                      value={content.sale?.label || ''}
+                      onChange={setSection('sale', 'label')}
+                      className={inputCls}
+                      placeholder="Diwali Sale"
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Discount %</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="99"
+                      value={content.sale?.percent ?? ''}
+                      onChange={setSection('sale', 'percent')}
+                      className={inputCls}
+                      placeholder="40"
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Ends on (optional)</label>
+                    <input
+                      type="date"
+                      value={content.sale?.endsAt || ''}
+                      onChange={setSection('sale', 'endsAt')}
+                      className={inputCls}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={applySaleNow}
+                    disabled={saleBusy}
+                    className="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
+                  >
+                    {saleBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Apply sale to all artworks
+                  </button>
+                  <button
+                    type="button"
+                    onClick={endSaleNow}
+                    disabled={saleBusy}
+                    className="inline-flex items-center gap-2 h-10 px-4 rounded-md border border-border text-sm hover:bg-muted disabled:opacity-50"
+                  >
+                    <X className="h-4 w-4" /> End sale &amp; restore prices
+                  </button>
+                  <span
+                    className={`text-sm ${content.sale?.active ? 'text-green-600' : 'text-muted-foreground'}`}
+                  >
+                    {content.sale?.active
+                      ? `Live — ${content.sale.percent || 0}% off${content.sale.label ? ` (${content.sale.label})` : ''}`
+                      : 'No sale running'}
+                  </span>
                 </div>
               </SectionCard>
 

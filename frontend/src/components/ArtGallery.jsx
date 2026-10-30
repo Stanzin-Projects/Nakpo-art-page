@@ -6,6 +6,7 @@ import { GalleryMarquee } from './GalleryMarquee';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
+import { flyToCart } from '../utils/flyToCart';
 
 const SORT_OPTIONS = [
   { value: 'featured', label: 'Featured' },
@@ -17,6 +18,10 @@ const SORT_OPTIONS = [
 
 export function ArtGallery({ artworks = [], siteContent }) {
   const galleryContent = siteContent?.gallery || {};
+  const sale = siteContent?.sale || {};
+  const salePercent = Number(sale.percent) || 0;
+  const saleEnded = sale.endsAt ? new Date(sale.endsAt).getTime() < Date.now() : false;
+  const saleLive = !!sale.active && salePercent > 0 && !saleEnded;
   const navigate = useNavigate();
   const { user, isFavorite, toggleFavorite } = useAuth();
   const { addToCart } = useCart();
@@ -108,6 +113,8 @@ export function ArtGallery({ artworks = [], siteContent }) {
 
   const handleAddToCart = (e, art) => {
     e.stopPropagation();
+    const source = e.currentTarget.closest('[data-cart-source]')?.querySelector('img') || e.currentTarget;
+    flyToCart({ from: source, image: imageUrl(art) });
     addToCart(art);
     push('Added to cart');
   };
@@ -116,6 +123,24 @@ export function ArtGallery({ artworks = [], siteContent }) {
     <section id="gallery" className="pt-2 pb-16 lg:pb-20 scroll-mt-16">
       <GalleryMarquee artworks={artworks} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {saleLive && (
+          <div className="mb-10 flex justify-center">
+            <div className="inline-flex flex-wrap items-center justify-center gap-2 rounded-full bg-destructive px-5 py-2 text-sm font-medium text-white">
+              <Percent className="h-4 w-4" />
+              <span>
+                {sale.label ? `${sale.label} — ` : ''}
+                {salePercent}% off everything
+              </span>
+              {sale.endsAt && (
+                <span className="opacity-85">
+                  · ends{' '}
+                  {new Date(sale.endsAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-medium mb-4 text-foreground">
             {galleryContent.title || 'Art Gallery'}
@@ -285,6 +310,7 @@ export function ArtGallery({ artworks = [], siteContent }) {
             return (
               <div
                 key={artId}
+                data-cart-source
                 className="cursor-pointer"
                 onClick={() => openArtwork(artwork)}
                 onKeyDown={(e) => e.key === 'Enter' && openArtwork(artwork)}

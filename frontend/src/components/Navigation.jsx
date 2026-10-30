@@ -120,9 +120,15 @@ export function Navigation({ onTrackClick }) {
               <button
                 type="button"
                 onClick={openCart}
+                data-cart-target
                 className="relative inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-background text-sm font-medium hover:bg-muted transition-colors"
                 title="Shopping cart"
               >
+                <span
+                  data-cart-ping
+                  className="pointer-events-none absolute inset-0 rounded-md border-2 border-primary opacity-0"
+                  aria-hidden="true"
+                />
                 <ShoppingCart className="h-4 w-4" />
                 {itemCount > 0 && (
                   <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full h-5 w-5 flex items-center justify-center text-xs">

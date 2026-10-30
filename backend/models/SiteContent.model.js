@@ -22,6 +22,13 @@ const siteContentSchema = new mongoose.Schema(
       image: String,
       stats: [{ value: String, label: String }],
     },
+    // Store-wide campaign (eg. "Diwali Sale — 40% off").
+    sale: {
+      active: { type: Boolean, default: false },
+      label: String,
+      percent: Number,
+      endsAt: String,
+    },
     contact: {
       title: String,
       description: String,
